@@ -176,13 +176,31 @@ function renderCharacters(chars) {
    DAILY TREND
    ============================================================ */
 function renderDaily(daily) {
-  const ctx = document.getElementById('daily-chart');
-  if (charts.daily) charts.daily.destroy();
+  const wrap = document.getElementById('daily-wrap');
+  if (!wrap) return;
+  /* destroy any old chart instance first */
+  if (charts.daily) { try { charts.daily.destroy(); } catch (e) {} charts.daily = null; }
+  /* remove any previous empty-state node */
+  wrap.querySelectorAll('.empty').forEach(n => n.remove());
+
+  let ctx = wrap.querySelector('canvas');
+  if (!ctx) {
+    /* canvas was removed previously — re-create */
+    ctx = document.createElement('canvas');
+    ctx.id = 'daily-chart';
+    wrap.appendChild(ctx);
+  }
+
   if (!daily || daily.length === 0) {
-    const wrap = ctx.parentElement;
-    wrap.innerHTML = '<div class="empty">还没有趋势数据 · no trend yet</div>';
+    ctx.style.display = 'none';
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = '还没有趋势数据 · no trend yet';
+    wrap.appendChild(empty);
     return;
   }
+  ctx.style.display = '';
+
   charts.daily = new Chart(ctx, {
     type: 'line',
     data: {
@@ -220,12 +238,27 @@ function renderDaily(daily) {
    GENDER PIE
    ============================================================ */
 function renderGender(split) {
-  const ctx = document.getElementById('gender-chart');
-  if (charts.gender) charts.gender.destroy();
+  const wrap = document.getElementById('gender-wrap');
+  if (!wrap) return;
+  if (charts.gender) { try { charts.gender.destroy(); } catch (e) {} charts.gender = null; }
+  wrap.querySelectorAll('.empty').forEach(n => n.remove());
+
+  let ctx = wrap.querySelector('canvas');
+  if (!ctx) {
+    ctx = document.createElement('canvas');
+    ctx.id = 'gender-chart';
+    wrap.appendChild(ctx);
+  }
+
   if (!split || split.length === 0) {
-    ctx.parentElement.innerHTML = '<div class="empty">暂无 · none yet</div>';
+    ctx.style.display = 'none';
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = '暂无 · none yet';
+    wrap.appendChild(empty);
     return;
   }
+  ctx.style.display = '';
   const labelMap = { male: '男 · male', female: '女 · female' };
   charts.gender = new Chart(ctx, {
     type: 'doughnut',
