@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Tracker database (keep server-side, never commit)
+tracker/*.db
+tracker/*.db-journal
+tracker/*.db-wal
+tracker/*.db-shm
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env files
+.env
+.env.local

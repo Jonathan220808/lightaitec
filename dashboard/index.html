@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据后台 · Data Backstage · lightaitec.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<!-- Auth gate: if no key in URL, show prompt -->
+<div id="gate" class="gate" hidden>
+  <div class="gate-card">
+    <div class="gate-label">DATA BACKSTAGE · 数据后台</div>
+    <h1 class="gate-title">需要密钥</h1>
+    <p class="gate-sub">Enter dashboard key to continue</p>
+    <form id="gate-form">
+      <input type="password" id="gate-key" placeholder="key" autocomplete="off" autofocus>
+      <button type="submit">进入 · Enter</button>
+    </form>
+    <p id="gate-err" class="gate-err" hidden>密钥不对 · wrong key</p>
+  </div>
+</div>
+
+<!-- Main dashboard -->
+<div id="dash" class="dash" hidden>
+
+  <header class="dash-header">
+    <div class="header-row">
+      <div>
+        <div class="header-eyebrow">DATA BACKSTAGE</div>
+        <h1 class="header-title">数据后台</h1>
+        <div class="header-sub">lightaitec.com · 粤剧咖啡 · Petit Echo</div>
+      </div>
+      <div class="header-meta">
+        <div class="meta-row"><span class="meta-label">生成于</span> <span id="generated-at">—</span></div>
+        <div class="meta-row"><span class="meta-label">site</span> <a href="https://lightaitec.com" target="_blank">lightaitec.com ↗</a></div>
+        <button id="refresh-btn" class="refresh-btn">⟳ 刷新</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top stats: the 4 numbers that matter -->
+  <section class="stats-row">
+    <div class="stat-card stat-card-1">
+      <div class="stat-label">访问数 · Visits</div>
+      <div class="stat-value" id="stat-visits">—</div>
+      <div class="stat-foot">unique sessions that loaded the site</div>
+    </div>
+    <div class="stat-card stat-card-2">
+      <div class="stat-label">开始数 · Starts</div>
+      <div class="stat-value" id="stat-starts">—</div>
+      <div class="stat-foot">clicked "开始"</div>
+    </div>
+    <div class="stat-card stat-card-3">
+      <div class="stat-label">生成角色 · Completed</div>
+      <div class="stat-value" id="stat-completed">—</div>
+      <div class="stat-foot">saw their character</div>
+    </div>
+    <div class="stat-card stat-card-4">
+      <div class="stat-label">完成率 · Completion</div>
+      <div class="stat-value" id="stat-rate">—</div>
+      <div class="stat-foot">completed ÷ visits</div>
+    </div>
+  </section>
+
+  <!-- Funnel: how visitors fall off through the game -->
+  <section class="panel panel-funnel">
+    <div class="panel-header">
+      <h2>转化漏斗 <span class="panel-en">Funnel</span></h2>
+      <div class="panel-hint">每一步的独立会话数</div>
+    </div>
+    <div id="funnel-chart" class="funnel-chart"></div>
+  </section>
+
+  <!-- Two-column row: characters + daily trend -->
+  <section class="two-col">
+    <div class="panel panel-characters">
+      <div class="panel-header">
+        <h2>角色分布 <span class="panel-en">Characters</span></h2>
+        <div class="panel-hint">观众最常被生成的角色</div>
+      </div>
+      <div class="character-list" id="character-list"></div>
+    </div>
+
+    <div class="panel panel-daily">
+      <div class="panel-header">
+        <h2>每日趋势 <span class="panel-en">Daily Trend</span></h2>
+        <div class="panel-hint">访问 vs 完成 · 近 30 天</div>
+      </div>
+      <div class="chart-wrap"><canvas id="daily-chart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Three-column row: gender, source, recent -->
+  <section class="three-col">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>性别 <span class="panel-en">Gender</span></h2>
+        <div class="panel-hint">完成的观众里的选择</div>
+      </div>
+      <div class="chart-wrap small"><canvas id="gender-chart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>来源 <span class="panel-en">Source</span></h2>
+        <div class="panel-hint">QR / 直链 / 其他</div>
+      </div>
+      <div id="source-list" class="source-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>实时事件 <span class="panel-en">Recent</span></h2>
+        <div class="panel-hint">最近 20 条</div>
+      </div>
+      <div id="recent-list" class="recent-list"></div>
+    </div>
+  </section>
+
+  <footer class="dash-foot">
+    <div>powered by a self-built tracker · 不会代码 + AI vibe coding</div>
+    <div class="foot-light">made for lightaitec.com</div>
+  </footer>
+
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

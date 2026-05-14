@@ -1,0 +1,16 @@
+{
+  "name": "lightaitec-tracker",
+  "version": "1.0.0",
+  "description": "Tracking API for lightaitec.com / Yueju demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

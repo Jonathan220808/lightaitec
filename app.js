@@ -3,6 +3,58 @@
    camera capture + face analysis + matching
    ======================================== */
 
+/* ========================================
+   ANALYTICS / TRACKING
+   Fire-and-forget calls to /api/track.
+   Never blocks UI, never throws.
+   ======================================== */
+(function setupTracking() {
+  /* session_id: persists across the whole visit (one playthrough = one session) */
+  let sid = sessionStorage.getItem('lt_sid');
+  if (!sid) {
+    sid = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    sessionStorage.setItem('lt_sid', sid);
+  }
+
+  /* UTM-style source: read once from URL, persist for the session */
+  let source = sessionStorage.getItem('lt_source');
+  if (!source) {
+    const u = new URL(window.location.href);
+    source = u.searchParams.get('source') || u.searchParams.get('utm_source') || null;
+    if (source) sessionStorage.setItem('lt_source', source);
+  }
+
+  window.__track = function (event, extra) {
+    try {
+      const payload = Object.assign({
+        session_id: sid,
+        event: event,
+        source: source
+      }, extra || {});
+
+      const body = JSON.stringify(payload);
+
+      /* Prefer sendBeacon — survives page unload, doesn't block. */
+      if (navigator.sendBeacon) {
+        const blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon('/api/track', blob);
+      } else {
+        fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch (e) {
+      /* Tracking must never break the app. */
+    }
+  };
+})();
+
+/* Fire page_view as soon as the script loads. */
+window.__track('page_view');
+
 const state = {
   lang: 'zh',
   screen: 'welcome',
@@ -498,6 +550,7 @@ function captureShot() {
 
   state.capturedPhoto = canvas.toDataURL('image/png');
   state.faceWeights = analyzePhoto(canvas);
+  window.__track('photo_taken');
   stopCamera();
   state.screen = 'camera-review';
   render();
@@ -515,6 +568,12 @@ function proceedToMatch() {
   render();
   setTimeout(() => {
     state.matchedCharacter = computeMatch();
+    /* The critical conversion event — we have a result. */
+    window.__track('character_generated', {
+      character_id:   state.matchedCharacter ? state.matchedCharacter.id      : null,
+      character_name: state.matchedCharacter ? state.matchedCharacter.name_cn : null,
+      gender:         state.gender
+    });
     state.screen = 'result';
     render();
   }, 2400);
@@ -533,6 +592,7 @@ $app.addEventListener('click', (e) => {
 
   switch (action) {
     case 'start':
+      window.__track('start');
       state.screen = 'intro';
       render();
       break;
@@ -544,6 +604,7 @@ $app.addEventListener('click', (e) => {
 
     case 'set-gender':
       state.gender = actionEl.dataset.gender;
+      window.__track('gender_selected', { gender: state.gender });
       state.screen = 'question';
       state.qIndex = 0;
       state.traitTotals = emptyTraits();
@@ -562,6 +623,7 @@ $app.addEventListener('click', (e) => {
         render();
       } else {
         /* All questions answered: go to camera intro */
+        window.__track('questions_completed');
         state.screen = 'camera-intro';
         render();
       }
@@ -587,6 +649,7 @@ $app.addEventListener('click', (e) => {
       break;
 
     case 'skip-camera':
+      window.__track('photo_skipped');
       stopCamera();
       proceedToMatch();
       break;
@@ -602,6 +665,7 @@ $app.addEventListener('click', (e) => {
       break;
 
     case 'save-ticket':
+      window.__track('ticket_saved');
       saveTicket();
       break;
 
