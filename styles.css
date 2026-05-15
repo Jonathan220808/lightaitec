@@ -284,14 +284,17 @@ p  { line-height: 1.75; }
   border-bottom: 1px solid var(--gold);
 }
 
-/* ============= welcome screen ============= */
+/* ============= welcome screen =============
+   Goal: every element including the START button is visible
+   above-the-fold without scrolling, on viewports >= ~640px tall.
+   We use compact spacing and viewport-responsive logo sizing. */
 .welcome {
   justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 14px;
-  padding-top: 18px;
-  padding-bottom: 24px;
+  gap: 6px;
+  padding-top: 8px;
+  padding-bottom: 16px;
   padding-left: 22px;
   padding-right: 22px;
 }
@@ -301,13 +304,15 @@ p  { line-height: 1.75; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .welcome-logo img {
   width: auto;
-  max-width: 230px;
-  max-height: 200px;
+  /* Shrink the logo on short viewports so the start button fits.
+     22vh = max 22% of viewport height; clamped between 110-180px. */
+  max-width: 180px;
+  max-height: clamp(110px, 22vh, 180px);
   height: auto;
   object-fit: contain;
   border-radius: 4px;
@@ -317,50 +322,51 @@ p  { line-height: 1.75; }
 }
 
 @media (max-width: 380px) {
-  .welcome-logo img { max-width: 190px; max-height: 170px; }
+  .welcome-logo img { max-width: 160px; max-height: clamp(100px, 20vh, 160px); }
 }
 
 .welcome h1 {
   letter-spacing: 0.06em;
-  margin-bottom: 4px;
-  font-size: 1.4rem;
+  margin-bottom: 2px;
+  font-size: 1.15rem;
   color: var(--gold);
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .welcome .en-title {
   font-family: var(--serif-en);
   font-style: italic;
   color: var(--cream-soft);
-  letter-spacing: 0.08em;
-  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
 }
 
 .welcome .question-mark {
-  margin-top: 6px;
+  margin-top: 2px;
   font-family: var(--serif-cn);
   color: var(--cream);
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   letter-spacing: 0.04em;
-  line-height: 1.6;
+  line-height: 1.45;
   text-align: center;
 }
 
 .welcome .invite-text {
-  margin-top: 6px;
+  margin-top: 2px;
   font-family: var(--serif-en);
   color: var(--text-mute);
   font-style: italic;
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 0.72rem;
+  line-height: 1.4;
   text-align: center;
 }
 
 .welcome .welcome-title {
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  line-height: 1.35;
+  line-height: 1.25;
   color: var(--gold);
 }
 
@@ -890,8 +896,24 @@ p  { line-height: 1.75; }
   position: absolute;
   inset: 0;
   z-index: 0;
-  opacity: 0.42;
+  opacity: 0.32;
   filter: blur(0.5px);
+}
+
+/* Dark overlay on the portrait so spoken lines stay readable
+   regardless of the photo's bright/dark regions. */
+.video-portrait-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 6, 14, 0.45) 0%,
+    rgba(10, 6, 14, 0.55) 50%,
+    rgba(10, 6, 14, 0.75) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 .video-portrait-bg svg {
@@ -927,37 +949,41 @@ p  { line-height: 1.75; }
 }
 
 .video-placeholder-meta {
-  color: var(--gold);
+  color: var(--stage-gold);
   font-size: 0.7rem;
   letter-spacing: 0.25em;
   margin-bottom: 12px;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
+/* Monologue text is shown on a dark stage backdrop, so use the
+   --stage-text light color (NOT --cream, which is deep brown). */
 .video-placeholder-spoken {
-  color: var(--cream);
+  color: var(--stage-text);
   font-size: 1.05rem;
   line-height: 1.85;
   font-style: italic;
   margin: 14px 0;
-  font-weight: 300;
+  font-weight: 400;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 
 .video-placeholder-spoken-en {
   font-family: var(--serif-en);
-  color: var(--text-mute);
+  color: rgba(245, 230, 200, 0.78);
   font-style: italic;
   font-size: 0.85rem;
   margin-top: 6px;
   line-height: 1.6;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .video-placeholder-note {
   margin-top: 18px;
   font-size: 0.68rem;
-  color: var(--text-faint);
+  color: rgba(245, 230, 200, 0.48);
   letter-spacing: 0.08em;
-  border-top: 1px dashed rgba(212, 160, 23, 0.2);
+  border-top: 1px dashed rgba(212, 160, 23, 0.25);
   padding-top: 10px;
 }
 
@@ -1180,6 +1206,11 @@ p  { line-height: 1.75; }
 .center-action {
   text-align: center;
   margin-top: 24px;
+}
+
+/* Welcome screen needs tighter spacing so the button fits above-fold. */
+.welcome .center-action {
+  margin-top: 10px;
 }
 
 /* ============= utilities ============= */
