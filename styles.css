@@ -133,11 +133,14 @@ body::before {
   filter: saturate(0.8);
 }
 
-/* Ticket screen — small, sharp */
+/* Ticket screen — fills the enlarged frame */
 .ticket-portrait .character-photo {
-  max-width: 100%;
-  border-radius: 3px;
-  box-shadow: 0 2px 8px rgba(42, 26, 10, 0.12);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  margin: 0;
+  box-shadow: none;
 }
 
 /* ============= screen base ============= */
@@ -988,6 +991,23 @@ p  { line-height: 1.75; }
 }
 
 /* ============= virtual ticket screen ============= */
+/* When the user lands on the ticket screen, swap the body's anchor.png
+   backdrop for the dedicated 'background in the end.jpg' poster art.
+   The class is toggled by render() in app.js. */
+body.on-ticket-screen {
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse at center,
+      rgba(252, 242, 208, 0.55) 0%,
+      rgba(245, 232, 200, 0.65) 60%,
+      rgba(235, 217, 168, 0.78) 100%),
+    url('background in the end.jpg');
+  background-size: 100% 100%, cover;
+  background-position: 0 0, center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 .ticket-screen {
   justify-content: flex-start;
   align-items: center;
@@ -1047,24 +1067,29 @@ p  { line-height: 1.75; }
   position: relative;
 }
 
-.ticket-brand { text-align: left; }
+.ticket-brand { text-align: left; max-width: 70%; }
 
+/* Multi-line brand text — '由味蕾品味 / 轻盈精妙的粤剧世界' is much
+   longer than the old '广府粤剧 · 礼请', so we relax letter-spacing
+   and bump line-height. */
 .ticket-brand-cn {
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
   color: var(--gold);
   opacity: 1;
   font-weight: 600;
+  line-height: 1.45;
 }
 
 .ticket-brand-en {
   font-family: var(--serif-en);
   font-style: italic;
-  font-size: 0.6rem;
-  letter-spacing: 0.15em;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
   color: var(--gold);
-  opacity: 0.65;
-  margin-top: 2px;
+  opacity: 0.7;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .ticket-meta {
@@ -1077,15 +1102,15 @@ p  { line-height: 1.75; }
 }
 
 .ticket-portrait {
-  width: 90px;
-  height: 112px;
-  margin: 4px auto 8px;
+  width: 170px;
+  height: 210px;
+  margin: 8px auto 12px;
   background: var(--stage-deep);
   border: 2px solid var(--gold);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
   box-shadow:
-    0 2px 10px rgba(196, 36, 58, 0.2),
+    0 4px 16px rgba(196, 36, 58, 0.25),
     inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 

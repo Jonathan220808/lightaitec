@@ -477,7 +477,6 @@ function renderTicket() {
         </div>
         <div class="ticket-portrait">${renderCharacterPortrait(c)}</div>
         <div style="text-align:center;padding:6px 0">
-          <div class="ticket-bearer-label">${t('ticket_bearer_label')}</div>
           <div class="ticket-bearer-cn">${altLang(c.name_en, c.name_cn)}</div>
           <div class="ticket-bearer-en">${altLang(c.name_cn, c.name_en)}</div>
           <div class="ticket-source">${altLang('from ' + c.play_en, '来自 ' + c.play_cn)}</div>
@@ -487,8 +486,8 @@ function renderTicket() {
         </div>
         <div class="ticket-footer">
           <div class="ticket-event">
-            <div class="ticket-event-label">${t('ticket_event_label')}</div>
-            <div class="ticket-event-detail">${altLang(c.event_en, c.event_cn)}</div>
+            <div class="ticket-event-label">${t('ticket_venue')}</div>
+            <div class="ticket-event-detail">${t('ticket_when')}</div>
           </div>
           <div class="ticket-qr">${qrCells.join('')}</div>
         </div>
@@ -520,6 +519,10 @@ function render() {
     case 'ticket':        html = renderTicket(); break;
   }
   $app.innerHTML = html;
+
+  /* Toggle a body class so the ticket screen can have its own
+     full-bleed background image (background in the end.jpg). */
+  document.body.classList.toggle('on-ticket-screen', state.screen === 'ticket');
 
   /* After camera-live render, wire up the video stream */
   if (state.screen === 'camera-live' && state.cameraStream) {
