@@ -113,11 +113,20 @@ app.post('/api/track', (req, res) => {
 });
 
 /**
- * GET /api/stats?key=...
+ * GET /api/stats
  * Returns aggregated stats for the dashboard.
+ *
+ * Auth: accepts the key via either
+ *   - HTTP header  X-Dashboard-Key: <key>   (preferred — won't leak via URL)
+ *   - query param  ?key=<key>               (legacy fallback)
+ * The dashboard frontend uses the header form and stores the key in
+ * localStorage, so it never appears in the URL or server access logs.
  */
 app.get('/api/stats', (req, res) => {
-  if (req.query.key !== DASHBOARD_KEY) {
+  const provided = req.headers['x-dashboard-key'] || req.query.key;
+  /* Trim to forgive accidental whitespace from copy/paste. */
+  const key = typeof provided === 'string' ? provided.trim() : '';
+  if (key !== DASHBOARD_KEY) {
     return res.status(401).json({ error: 'unauthorized' });
   }
 

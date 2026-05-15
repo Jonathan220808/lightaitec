@@ -40,19 +40,45 @@ const FUNNEL_LABELS = {
 
 let charts = {};
 let currentKey = null;
+const STORAGE_KEY = 'lt_dashboard_key';
 
 /* ============================================================
    AUTH GATE
+   - Key is stored in localStorage so URL stays clean and the
+     password never appears in the address bar, history, or
+     server access logs. Sent via X-Dashboard-Key header.
+   - One-time migration: strip ?key= from URL if it was left there
+     by an old bookmark.
    ============================================================ */
-function getKeyFromUrl() {
+function stripKeyFromUrl() {
   const u = new URL(window.location.href);
-  return u.searchParams.get('key');
+  if (u.searchParams.has('key')) {
+    const keyFromUrl = u.searchParams.get('key');
+    if (keyFromUrl && !localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, keyFromUrl.trim());
+    }
+    u.searchParams.delete('key');
+    window.history.replaceState(null, '', u.pathname + (u.search || ''));
+  }
+}
+
+function getStoredKey() {
+  try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+}
+
+function storeKey(k) {
+  try { localStorage.setItem(STORAGE_KEY, k); } catch (e) {}
+}
+
+function clearStoredKey() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 }
 
 function showGate(errored) {
   document.getElementById('gate').hidden = false;
   document.getElementById('dash').hidden = true;
-  if (errored) document.getElementById('gate-err').hidden = false;
+  const err = document.getElementById('gate-err');
+  if (err) err.hidden = !errored;
 }
 function hideGate() {
   document.getElementById('gate').hidden = true;
@@ -63,11 +89,8 @@ document.getElementById('gate-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const key = document.getElementById('gate-key').value.trim();
   if (!key) return;
-  /* Put key in URL so refresh works */
-  const u = new URL(window.location.href);
-  u.searchParams.set('key', key);
-  window.history.replaceState(null, '', u.toString());
   currentKey = key;
+  storeKey(key);
   load();
 });
 
@@ -78,8 +101,16 @@ document.getElementById('refresh-btn').addEventListener('click', () => load());
    ============================================================ */
 async function load() {
   try {
-    const res = await fetch('/api/stats?key=' + encodeURIComponent(currentKey), { cache: 'no-store' });
-    if (res.status === 401) { showGate(true); return; }
+    const res = await fetch('/api/stats', {
+      cache: 'no-store',
+      headers: { 'X-Dashboard-Key': currentKey || '' }
+    });
+    if (res.status === 401) {
+      clearStoredKey();
+      currentKey = null;
+      showGate(true);
+      return;
+    }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     hideGate();
@@ -380,7 +411,10 @@ function formatTime(ts) {
    BOOT
    ============================================================ */
 (function boot() {
-  currentKey = getKeyFromUrl();
+  /* If the URL still has ?key=... from an old bookmark, migrate
+     it into localStorage and clean the address bar. */
+  stripKeyFromUrl();
+  currentKey = getStoredKey();
   if (!currentKey) {
     showGate(false);
   } else {
