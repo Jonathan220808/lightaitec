@@ -74,11 +74,16 @@ function clearStoredKey() {
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 }
 
-function showGate(errored) {
+function showGate(errored, message) {
   document.getElementById('gate').hidden = false;
   document.getElementById('dash').hidden = true;
   const err = document.getElementById('gate-err');
-  if (err) err.hidden = !errored;
+  if (err) {
+    err.hidden = !errored;
+    if (errored) {
+      err.textContent = message || '密钥不对 · wrong key';
+    }
+  }
 }
 function hideGate() {
   document.getElementById('gate').hidden = true;
@@ -100,24 +105,29 @@ document.getElementById('refresh-btn').addEventListener('click', () => load());
    FETCH + LOAD
    ============================================================ */
 async function load() {
+  console.log('[dashboard] load() with key:', currentKey ? currentKey.slice(0, 3) + '***' + currentKey.slice(-2) : '(none)');
   try {
     const res = await fetch('/api/stats', {
       cache: 'no-store',
       headers: { 'X-Dashboard-Key': currentKey || '' }
     });
+    console.log('[dashboard] response status:', res.status);
     if (res.status === 401) {
       clearStoredKey();
       currentKey = null;
-      showGate(true);
+      showGate(true, '密钥不对 (HTTP 401) · wrong key');
       return;
     }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      showGate(true, '服务器错误 HTTP ' + res.status);
+      return;
+    }
     const data = await res.json();
     hideGate();
     render(data);
   } catch (err) {
-    console.error(err);
-    alert('数据加载失败：' + err.message);
+    console.error('[dashboard] fetch error:', err);
+    showGate(true, '网络错误：' + (err.message || err));
   }
 }
 
@@ -410,11 +420,30 @@ function formatTime(ts) {
 /* ============================================================
    BOOT
    ============================================================ */
+function readKeyFromHash() {
+  /* Support one-click login via URL hash: /dashboard/#key=YOUR_KEY
+     Hash is NOT sent to the server (no access-log leakage) and is
+     cleaned from the address bar immediately. */
+  const m = window.location.hash.match(/(?:^#|&)key=([^&]+)/);
+  if (!m) return null;
+  return decodeURIComponent(m[1]).trim();
+}
+
 (function boot() {
-  /* If the URL still has ?key=... from an old bookmark, migrate
-     it into localStorage and clean the address bar. */
+  /* Priority 1: hash key (one-click login URL) */
+  const hashKey = readKeyFromHash();
+  if (hashKey) {
+    currentKey = hashKey;
+    storeKey(hashKey);
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
+  /* Priority 2: migrate legacy ?key= from URL into localStorage */
   stripKeyFromUrl();
-  currentKey = getStoredKey();
+
+  /* Priority 3: previously stored key */
+  if (!currentKey) currentKey = getStoredKey();
+
   if (!currentKey) {
     showGate(false);
   } else {
