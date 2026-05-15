@@ -55,15 +55,26 @@ if (!existingCols.includes('region'))  db.exec('ALTER TABLE events ADD COLUMN re
 if (!existingCols.includes('city'))    db.exec('ALTER TABLE events ADD COLUMN city TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_events_city ON events(city)');
 
-/* Resolve a public IP to a coarse location. Strips IPv6 prefix that
-   nginx sometimes adds for v4 clients. Returns null on private / unknown
-   IPs (localhost, 10.x, 192.168.x, etc). */
-function lookupGeo(ip) {
+/* ============================================================
+   GEO LOOKUP — two-tier:
+   1. ip-api.com (online, free, 45 req/min from this server,
+                  accurate to city level including China)
+   2. geoip-lite (offline, instant, fallback when online fails)
+   Cached in-memory by IP so repeat visitors don't re-fetch.
+   ============================================================ */
+const http = require('http');
+const IP_CACHE = new Map();
+const IP_CACHE_MAX = 5000;
+
+function cleanIp(ip) {
+  return (ip || '').replace(/^::ffff:/, '');
+}
+
+/* Synchronous local fallback */
+function lookupGeoLocal(ip) {
   if (!ip) return null;
-  /* Strip "::ffff:" prefix for IPv4-mapped IPv6 */
-  const clean = ip.replace(/^::ffff:/, '');
   try {
-    const g = geoip.lookup(clean);
+    const g = geoip.lookup(ip);
     if (!g) return null;
     return {
       country: g.country || null,
@@ -73,6 +84,67 @@ function lookupGeo(ip) {
   } catch (e) {
     return null;
   }
+}
+
+/* Online query via ip-api.com (no API key needed for HTTP) */
+function lookupGeoOnline(ip) {
+  return new Promise((resolve) => {
+    if (!ip) return resolve(null);
+    const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,countryCode,regionName,city`;
+    const req = http.get(url, { timeout: 2500 }, (res) => {
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data && data.status === 'success') {
+            resolve({
+              country: data.countryCode || null,
+              region:  data.regionName  || null,
+              city:    data.city        || null
+            });
+          } else {
+            resolve(null);
+          }
+        } catch (e) { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
+/* Main entry: cache → online → local */
+async function resolveGeo(ip) {
+  const clean = cleanIp(ip);
+  if (!clean) return null;
+
+  if (IP_CACHE.has(clean)) return IP_CACHE.get(clean);
+
+  /* Try online first (richer city data, esp. for China) */
+  let geo = await lookupGeoOnline(clean);
+
+  /* Fall back to local if online failed or returned blank city */
+  if (!geo || !geo.city) {
+    const local = lookupGeoLocal(clean);
+    if (local) {
+      geo = {
+        country: (geo && geo.country) || local.country,
+        region:  (geo && geo.region)  || local.region,
+        city:    (geo && geo.city)    || local.city
+      };
+    }
+  }
+
+  if (geo) {
+    /* Cap the cache size */
+    if (IP_CACHE.size >= IP_CACHE_MAX) {
+      const firstKey = IP_CACHE.keys().next().value;
+      IP_CACHE.delete(firstKey);
+    }
+    IP_CACHE.set(clean, geo);
+  }
+  return geo;
 }
 
 const app = express();
@@ -111,7 +183,7 @@ const insertEvent = db.prepare(`
  * POST /api/track
  * Body: { session_id, event, character_id?, character_name?, gender?, source? }
  */
-app.post('/api/track', (req, res) => {
+app.post('/api/track', async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.session_id || typeof b.session_id !== 'string') {
@@ -123,7 +195,9 @@ app.post('/api/track', (req, res) => {
 
     const ua = (req.headers['user-agent'] || '').slice(0, 300);
     const ip = (req.ip || '').slice(0, 64);
-    const geo = lookupGeo(ip);
+    /* Online lookup is ~100-200ms; track is fire-and-forget (sendBeacon)
+       so the browser doesn't wait. */
+    const geo = await resolveGeo(ip);
 
     insertEvent.run({
       session_id:     String(b.session_id).slice(0, 64),
