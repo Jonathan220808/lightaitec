@@ -105,6 +105,41 @@ body::before {
   flex-direction: column;
 }
 
+/* ============= real character photos =============
+   Used when a character has an `image` field in data-active.js.
+   These illustrations replace the procedural SVG portraits in
+   the result, monologue, and ticket screens. */
+.character-photo {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 6px;
+}
+
+/* Result screen — full-bleed portrait */
+.portrait-frame .character-photo {
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(42, 26, 10, 0.18);
+}
+
+/* Monologue screen — soft, atmospheric backdrop */
+.video-portrait-bg .character-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  opacity: 0.42;
+  filter: saturate(0.8);
+}
+
+/* Ticket screen — small, sharp */
+.ticket-portrait .character-photo {
+  max-width: 100%;
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(42, 26, 10, 0.12);
+}
+
 /* ============= screen base ============= */
 .screen {
   flex: 1;

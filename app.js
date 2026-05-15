@@ -98,6 +98,17 @@ function emptyTraits() {
    PORTRAIT GENERATOR — moved to portraits.js
    window.generatePortrait(character) is provided there.
    ======================================== */
+
+/* If the character has a real illustration (image field), use that;
+   otherwise fall back to the procedural SVG portrait. */
+function renderCharacterPortrait(character) {
+  if (!character) return '';
+  if (character.image) {
+    const alt = character.name_cn || character.name_en || '';
+    return `<img class="character-photo" src="${character.image}" alt="${alt}" />`;
+  }
+  return generatePortrait(character);
+}
 /* ========================================
    FACE PHOTO ANALYSIS
    Sample center region of captured photo,
@@ -184,10 +195,16 @@ function computeMatch() {
   let bestChar = null;
   let bestScore = -Infinity;
 
+  /* Use the active 15-character pool when defined, falling back to
+     the full historical 60 if data-active.js isn't loaded. */
+  const sourcePool = (window.ACTIVE_CHARACTERS && window.ACTIVE_CHARACTERS.length > 0)
+    ? window.ACTIVE_CHARACTERS
+    : window.CHARACTERS;
+
   /* Filter by selected gender — match only within the user's gender pool */
   const pool = state.gender
-    ? window.CHARACTERS.filter(c => c.gender === state.gender)
-    : window.CHARACTERS;
+    ? sourcePool.filter(c => c.gender === state.gender)
+    : sourcePool;
 
   for (const char of pool) {
     const charVec = window.TRAITS.map(t => char.traits[t]);
@@ -393,7 +410,7 @@ function renderResult() {
     ${renderTopBar()}
     <div class="screen result">
       <div class="result-prelude">${t('result_prelude')}</div>
-      <div class="portrait-frame">${generatePortrait(c)}</div>
+      <div class="portrait-frame">${renderCharacterPortrait(c)}</div>
       <div class="result-name-cn">${altLang(c.name_en, c.name_cn)}</div>
       <div class="result-name-en">${altLang(c.name_cn, c.name_en)}</div>
       <div class="result-from">${t('result_from', { play: altLang(c.play_en, c.play_cn) })}</div>
@@ -415,7 +432,7 @@ function renderMonologue() {
     ${renderTopBar()}
     <div class="screen monologue">
       <div class="video-placeholder">
-        <div class="video-portrait-bg">${generatePortrait(c)}</div>
+        <div class="video-portrait-bg">${renderCharacterPortrait(c)}</div>
         <div class="video-placeholder-content">
           <div class="video-placeholder-meta">${t('monologue_meta')}</div>
           <div class="video-placeholder-spoken">"${altLang(c.monologue_en, c.monologue_cn)}"</div>
@@ -459,7 +476,7 @@ function renderTicket() {
             ${altLang('Issued today', '今日初发')}
           </div>
         </div>
-        <div class="ticket-portrait">${generatePortrait(c)}</div>
+        <div class="ticket-portrait">${renderCharacterPortrait(c)}</div>
         <div style="text-align:center;padding:6px 0">
           <div class="ticket-bearer-label">${t('ticket_bearer_label')}</div>
           <div class="ticket-bearer-cn">${altLang(c.name_en, c.name_cn)}</div>
