@@ -86,10 +86,22 @@ function showGate(errored, message) {
   }
 }
 function hideGate() {
-  document.getElementById('gate').hidden = true;
-  document.getElementById('dash').hidden = false;
-  /* Scroll back to top in case the user scrolled while the gate was up. */
+  /* Remove the gate from the DOM entirely — this is bulletproof against
+     CSS specificity issues or stale cached stylesheets that might leave
+     the gate visible as a giant empty block pushing the dashboard down. */
+  const gate = document.getElementById('gate');
+  if (gate && gate.parentNode) gate.parentNode.removeChild(gate);
+
+  const dash = document.getElementById('dash');
+  if (dash) {
+    dash.hidden = false;
+    dash.style.display = '';
+  }
+
+  /* Land the user at the top of the dashboard. */
   window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 }
 
 document.getElementById('gate-form').addEventListener('submit', (e) => {
