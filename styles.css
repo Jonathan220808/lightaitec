@@ -991,23 +991,6 @@ p  { line-height: 1.75; }
 }
 
 /* ============= virtual ticket screen ============= */
-/* When the user lands on the ticket screen, swap the body's anchor.png
-   backdrop for the dedicated 'background in the end.jpg' poster art.
-   The class is toggled by render() in app.js. */
-body.on-ticket-screen {
-  background-color: var(--bg-deep);
-  background-image:
-    radial-gradient(ellipse at center,
-      rgba(252, 242, 208, 0.55) 0%,
-      rgba(245, 232, 200, 0.65) 60%,
-      rgba(235, 217, 168, 0.78) 100%),
-    url('background in the end.jpg');
-  background-size: 100% 100%, cover;
-  background-position: 0 0, center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
 .ticket-screen {
   justify-content: flex-start;
   align-items: center;

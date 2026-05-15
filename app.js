@@ -520,10 +520,6 @@ function render() {
   }
   $app.innerHTML = html;
 
-  /* Toggle a body class so the ticket screen can have its own
-     full-bleed background image (background in the end.jpg). */
-  document.body.classList.toggle('on-ticket-screen', state.screen === 'ticket');
-
   /* After camera-live render, wire up the video stream */
   if (state.screen === 'camera-live' && state.cameraStream) {
     const video = document.getElementById('camera-video');
