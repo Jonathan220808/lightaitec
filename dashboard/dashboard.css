@@ -407,6 +407,114 @@ a:hover { color: var(--gold-soft); }
 .chart-wrap.small { height: 240px; }
 
 /* ============================================================
+   CITIES & COUNTRIES (geo distribution)
+   ============================================================ */
+.two-col-geo { grid-template-columns: 1.4fr 1fr; }
+
+.city-list, .country-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.city-row {
+  display: grid;
+  grid-template-columns: 28px 28px 1.6fr 1.4fr 50px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px dashed var(--ink-faint);
+}
+.city-rank {
+  font-family: var(--serif-en);
+  font-size: 14px;
+  color: var(--gold);
+  font-weight: 500;
+}
+.city-flag {
+  font-size: 20px;
+  text-align: center;
+  line-height: 1;
+}
+.city-name {
+  font-size: 15px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.city-name small {
+  display: block;
+  font-family: var(--serif-en);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.city-bar-wrap {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.city-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--maroon) 0%, var(--gold) 100%);
+  border-radius: 3px;
+}
+.city-count {
+  text-align: right;
+  font-family: var(--serif-en);
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+.country-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 50px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 4px;
+  border-bottom: 1px dashed var(--ink-faint);
+}
+.country-flag {
+  font-size: 22px;
+  text-align: center;
+  line-height: 1;
+}
+.country-name {
+  font-size: 15px;
+  color: var(--ink);
+}
+.country-name small {
+  font-family: var(--serif-en);
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-left: 4px;
+}
+.country-bar-wrap {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.country-bar {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 3px;
+}
+.country-count {
+  text-align: right;
+  font-family: var(--serif-en);
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+/* ============================================================
    THREE COLUMN LAYOUT
    ============================================================ */
 .three-col {

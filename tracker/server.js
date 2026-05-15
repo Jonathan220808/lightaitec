@@ -13,6 +13,7 @@
 const path = require('path');
 const express = require('express');
 const Database = require('better-sqlite3');
+const geoip = require('geoip-lite');
 
 const PORT = 3001;
 const HOST = '127.0.0.1';
@@ -45,6 +46,35 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
 `);
 
+/* Idempotent migration: add geo columns if running against an older db.
+   Older events won't have country/region/city — they'll just show as
+   Unknown in the dashboard. */
+const existingCols = db.prepare("PRAGMA table_info(events)").all().map(c => c.name);
+if (!existingCols.includes('country')) db.exec('ALTER TABLE events ADD COLUMN country TEXT');
+if (!existingCols.includes('region'))  db.exec('ALTER TABLE events ADD COLUMN region TEXT');
+if (!existingCols.includes('city'))    db.exec('ALTER TABLE events ADD COLUMN city TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_events_city ON events(city)');
+
+/* Resolve a public IP to a coarse location. Strips IPv6 prefix that
+   nginx sometimes adds for v4 clients. Returns null on private / unknown
+   IPs (localhost, 10.x, 192.168.x, etc). */
+function lookupGeo(ip) {
+  if (!ip) return null;
+  /* Strip "::ffff:" prefix for IPv4-mapped IPv6 */
+  const clean = ip.replace(/^::ffff:/, '');
+  try {
+    const g = geoip.lookup(clean);
+    if (!g) return null;
+    return {
+      country: g.country || null,
+      region:  g.region  || null,
+      city:    g.city    || null
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 const app = express();
 app.use(express.json({ limit: '32kb' }));
 
@@ -73,8 +103,8 @@ const ALLOWED_EVENTS = new Set([
 ]);
 
 const insertEvent = db.prepare(`
-  INSERT INTO events (session_id, event_type, character_id, character_name, gender, source, user_agent, ip)
-  VALUES (@session_id, @event_type, @character_id, @character_name, @gender, @source, @user_agent, @ip)
+  INSERT INTO events (session_id, event_type, character_id, character_name, gender, source, user_agent, ip, country, region, city)
+  VALUES (@session_id, @event_type, @character_id, @character_name, @gender, @source, @user_agent, @ip, @country, @region, @city)
 `);
 
 /**
@@ -93,6 +123,7 @@ app.post('/api/track', (req, res) => {
 
     const ua = (req.headers['user-agent'] || '').slice(0, 300);
     const ip = (req.ip || '').slice(0, 64);
+    const geo = lookupGeo(ip);
 
     insertEvent.run({
       session_id:     String(b.session_id).slice(0, 64),
@@ -102,7 +133,10 @@ app.post('/api/track', (req, res) => {
       gender:         b.gender         ? String(b.gender).slice(0, 16)         : null,
       source:         b.source         ? String(b.source).slice(0, 64)         : null,
       user_agent:     ua,
-      ip:             ip
+      ip:             ip,
+      country:        geo ? geo.country : null,
+      region:         geo ? geo.region  : null,
+      city:           geo ? geo.city    : null
     });
 
     res.json({ ok: true });
@@ -187,9 +221,34 @@ app.get('/api/stats', (req, res) => {
       return { step, uniq: row.uniq };
     });
 
+    // Top cities (unique sessions) — city level granularity
+    const cities = db.prepare(`
+      SELECT
+        COALESCE(NULLIF(city, ''),    'Unknown') AS city,
+        COALESCE(NULLIF(country, ''), '')        AS country,
+        COALESCE(NULLIF(region, ''),  '')        AS region,
+        COUNT(DISTINCT session_id) AS n
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY city, country, region
+      ORDER BY n DESC
+      LIMIT 30
+    `).all();
+
+    // Country distribution (rolled up)
+    const countries = db.prepare(`
+      SELECT
+        COALESCE(NULLIF(country, ''), 'Unknown') AS country,
+        COUNT(DISTINCT session_id) AS n
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY country
+      ORDER BY n DESC
+    `).all();
+
     // Recent events — last 20 for the live feed
     const recent = db.prepare(`
-      SELECT event_type, character_name, gender, source, created_at
+      SELECT event_type, character_name, gender, source, city, country, created_at
       FROM events
       ORDER BY id DESC
       LIMIT 20
@@ -203,6 +262,8 @@ app.get('/api/stats', (req, res) => {
       source_split: sourceSplit,
       daily,
       funnel,
+      cities,
+      countries,
       recent
     });
   } catch (err) {

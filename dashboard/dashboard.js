@@ -170,9 +170,90 @@ function render(data) {
   renderFunnel(data.funnel);
   renderCharacters(data.characters);
   renderDaily(data.daily);
+  renderCities(data.cities);
+  renderCountries(data.countries);
   renderGender(data.gender_split);
   renderSource(data.source_split);
   renderRecent(data.recent);
+}
+
+/* ============================================================
+   CITIES (city-level visitor distribution)
+   ============================================================ */
+function countryFlag(iso) {
+  if (!iso || typeof iso !== 'string' || iso.length !== 2) return '🌐';
+  const code = iso.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+  /* Convert ISO country code to flag emoji via regional indicator chars */
+  const A = 0x1F1E6 - 'A'.charCodeAt(0);
+  return String.fromCodePoint(code.charCodeAt(0) + A, code.charCodeAt(1) + A);
+}
+
+function renderCities(cities) {
+  const wrap = document.getElementById('city-list');
+  if (!wrap) return;
+  if (!cities || cities.length === 0) {
+    wrap.innerHTML = '<div class="empty">还没有地区数据 · no city data yet</div>';
+    return;
+  }
+  const max = cities[0].n || 1;
+  wrap.innerHTML = cities.map((c, i) => {
+    const pct = (c.n / max) * 100;
+    const rank = String(i + 1).padStart(2, '0');
+    const cityName = c.city || 'Unknown';
+    const country  = c.country || '';
+    const region   = c.region || '';
+    const flag = countryFlag(country);
+    const sub = country
+      ? (region ? escapeHtml(region) + ' · ' + escapeHtml(country) : escapeHtml(country))
+      : '—';
+    return `
+      <div class="city-row">
+        <div class="city-rank">${rank}</div>
+        <div class="city-flag">${flag}</div>
+        <div class="city-name">
+          ${escapeHtml(cityName)}
+          <small>${sub}</small>
+        </div>
+        <div class="city-bar-wrap"><div class="city-bar" style="width:${pct}%"></div></div>
+        <div class="city-count">${c.n}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCountries(countries) {
+  const wrap = document.getElementById('country-list');
+  if (!wrap) return;
+  if (!countries || countries.length === 0) {
+    wrap.innerHTML = '<div class="empty">还没有国家数据 · no country data yet</div>';
+    return;
+  }
+  const max = countries[0].n || 1;
+  /* Map ISO codes to Chinese country names for the most common ones. */
+  const CN = {
+    CN: '中国', HK: '香港', TW: '台湾', MO: '澳门', SG: '新加坡', MY: '马来西亚',
+    JP: '日本', KR: '韩国', TH: '泰国', VN: '越南', ID: '印度尼西亚', PH: '菲律宾', IN: '印度',
+    US: '美国', CA: '加拿大', MX: '墨西哥', BR: '巴西',
+    GB: '英国', FR: '法国', DE: '德国', IT: '意大利', ES: '西班牙', NL: '荷兰',
+    SE: '瑞典', NO: '挪威', CH: '瑞士', RU: '俄罗斯',
+    AU: '澳大利亚', NZ: '新西兰', AE: '阿联酋', SA: '沙特阿拉伯',
+    ZA: '南非', EG: '埃及', NG: '尼日利亚'
+  };
+  wrap.innerHTML = countries.map((c) => {
+    const pct = (c.n / max) * 100;
+    const code = c.country || '';
+    const flag = countryFlag(code);
+    const name = CN[code] || code || 'Unknown';
+    return `
+      <div class="country-row">
+        <div class="country-flag">${flag}</div>
+        <div class="country-name">${escapeHtml(name)} <small>${escapeHtml(code)}</small></div>
+        <div class="country-bar-wrap"><div class="country-bar" style="width:${pct}%"></div></div>
+        <div class="country-count">${c.n}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 /* ============================================================
@@ -361,7 +442,9 @@ function renderRecent(recent) {
     const time = formatTime(r.created_at);
     const detail = r.character_name
       ? escapeHtml(r.character_name)
-      : (r.gender ? (r.gender === 'male' ? '男' : '女') : (r.source || '—'));
+      : (r.city
+        ? countryFlag(r.country) + ' ' + escapeHtml(r.city)
+        : (r.gender ? (r.gender === 'male' ? '男' : '女') : (r.source || '—')));
     return `
       <div class="recent-row">
         <div class="recent-time">${time}</div>
