@@ -437,7 +437,6 @@ function renderMonologue() {
           <div class="video-placeholder-meta">${t('monologue_meta')}</div>
           <div class="video-placeholder-spoken">"${altLang(c.monologue_en, c.monologue_cn)}"</div>
           <div class="video-placeholder-spoken-en">${altLang(c.monologue_cn, c.monologue_en)}</div>
-          <div class="video-placeholder-note">${t('monologue_note')}</div>
         </div>
       </div>
       <div class="center-action">
@@ -494,8 +493,6 @@ function renderTicket() {
           <div class="ticket-qr">${qrCells.join('')}</div>
         </div>
       </div>
-      <div class="ticket-hint">${t('save_hint')}</div>
-      <div class="ticket-hint" style="opacity:0.5">${t('portrait_placeholder_note')}</div>
       <div class="ticket-actions">
         <button class="btn" data-action="save-ticket">${t('save_image')}</button>
         <button class="btn btn-ghost" data-action="restart">${t('play_again')}</button>
