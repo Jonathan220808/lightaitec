@@ -55,8 +55,17 @@ html, body {
 }
 
 body {
+  /* anchor.png (Cantonese street scene) used as a subtle backdrop.
+     A semi-transparent cream gradient sits on top so questions stay
+     fully readable — the photo is only ~10-12% visible through it.
+     attachment: fixed keeps the backdrop still while content scrolls. */
   background:
-    radial-gradient(ellipse at top, #fcf2d0 0%, #f5e8c8 60%, #ebd9a8 100%);
+    radial-gradient(ellipse at top,
+      rgba(252, 242, 208, 0.88) 0%,
+      rgba(245, 232, 200, 0.92) 55%,
+      rgba(235, 217, 168, 0.95) 100%),
+    url('anchor.png') center center / cover no-repeat;
+  background-attachment: fixed, fixed;
   min-height: 100vh;
   display: flex;
   align-items: stretch;
