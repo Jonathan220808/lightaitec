@@ -49,6 +49,11 @@ a:hover { color: var(--gold-soft); }
 /* ============================================================
    AUTH GATE
    ============================================================ */
+/* The HTML `hidden` attribute applies display:none, but our .gate /
+   .dash class selectors have higher specificity than the [hidden]
+   user-agent rule, so we explicitly re-honor it here. */
+[hidden] { display: none !important; }
+
 .gate {
   min-height: 100vh;
   display: flex;

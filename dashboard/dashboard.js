@@ -88,6 +88,8 @@ function showGate(errored, message) {
 function hideGate() {
   document.getElementById('gate').hidden = true;
   document.getElementById('dash').hidden = false;
+  /* Scroll back to top in case the user scrolled while the gate was up. */
+  window.scrollTo(0, 0);
 }
 
 document.getElementById('gate-form').addEventListener('submit', (e) => {
