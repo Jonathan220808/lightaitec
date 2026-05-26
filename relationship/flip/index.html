@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻出真心</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','微软雅黑',sans-serif;}
+        body{background:#f0f5ff;padding:20px;min-height:100vh;}
+        .back{display:inline-block;margin-bottom:16px;font-size:13px;color:#aaa;text-decoration:none;}
+        .back:hover{color:#666;}
+        .box{max-width:1100px;margin:0 auto;text-align:center;}
+        h1{color:#333;margin-bottom:20px;font-size:24px;}
+        .tip{font-size:18px;margin:15px 0;color:#333;font-weight:500;height:24px;}
+        .card-wrap{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:25px 0;}
+        .card{
+            width:145px;height:185px;
+            background:#fff;border-radius:12px;
+            box-shadow:0 2px 10px #ddd;
+            padding:15px;cursor:pointer;
+            transition:0.2s;border:2px solid transparent;
+        }
+        .card.active{border-color:#409eff;background:#ecf5ff;transform:scale(1.03);}
+        .card p{font-size:15px;color:#333;line-height:1.7;margin:0;font-weight:500;}
+        .btn-group{margin:20px 0;display:flex;gap:15px;justify-content:center;flex-wrap:wrap;}
+        .btn{
+            padding:10px 24px;border:none;
+            background:#409eff;color:#fff;
+            border-radius:6px;font-size:15px;
+            cursor:pointer;transition:0.2s;
+        }
+        .btn:disabled{background:#b3d8ff;cursor:not-allowed;}
+        .btn-reset{background:#f56c6c;}
+        .result{font-size:19px;font-weight:bold;margin:20px 0;min-height:26px;line-height:1.8;}
+    </style>
+</head>
+<body>
+    <a class="back" href="../">← 返回游戏列表</a>
+    <div class="box">
+        <h1>四人自我探索卡牌选择游戏</h1>
+        <div class="tip" id="tip">玩家1：请选择 2 张卡牌</div>
+
+        <div class="card-wrap" id="cardBox"></div>
+
+        <div class="btn-group">
+            <button class="btn" id="sureBtn" onclick="sureSelect()" disabled>确认选择</button>
+            <button class="btn" id="nextBtn" onclick="nextRound()" style="display:none">下一轮</button>
+            <button class="btn btn-reset" onclick="fullReset()">全部重置</button>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const cardList = [
+            ["喜欢被人关注","容易心软善良","害怕被人讨厌","习惯性迁就别人","容易感到孤独"],
+            ["在意他人眼光","喜欢安静独处","容易胡思乱想","性格温柔包容","内心缺乏安全感"],
+            ["容易情绪敏感","习惯假装坚强","不擅长表达爱","容易自我内耗","待人真诚心软"],
+            ["害怕发生冲突","喜欢简单相处","容易多虑焦虑","习惯性体谅他人","容易委屈自己"],
+            ["慢热不善社交","容易怀旧念旧","害怕别人失望","喜欢稳定生活","容易想太多"],
+            ["你很在意别人对你的评价","你不习惯主动表达自己需求","你常常默默消化所有坏情绪","你待人温柔但很容易吃亏","你内心细腻非常敏感"],
+            ["你害怕人际关系出现矛盾","你习惯性优先成全别人","你容易因为小事反复纠结","你不喜欢麻烦任何人帮忙","你常常自我怀疑不自信"],
+            ["你喜欢低调不爱张扬表现","你很珍惜身边每一段关系","你容易共情别人消耗自己","你遇事习惯自己硬扛到底","你很难真正放松下来"],
+            ["你会过于执着于自己的计划","你会很依赖他人","你不懂表达自己的情绪","你总是喜欢控制别人","你常常会感受到内疚"],
+            ["遇事容易胡思乱想内耗自己","习惯性讨好身边的所有人","害怕拒绝别人不好意思说不","内心敏感在意他人眼光","常常压抑自己的真实感受"],
+            ["做事容易犹豫不决选择困难","很在意别人对自己的看法","不擅长主动表达内心需求","容易委屈自己成全别人","经常莫名感到情绪低落"],
+            ["习惯把心事全部藏在心里面","对自己要求过高容易焦虑","不懂得好好善待疼爱自己","遇事习惯性先责怪自己","很难真正放松下来休息"],
+            ["害怕人际关系中的冲突矛盾","总是过度为他人操心担心","容易自我否定怀疑自己","不擅长拒绝害怕得罪别人","内心缺乏足够的安全感"],
+            ["容易过度共情他人消耗自己","习惯默默承受所有压力","不善于求助总独自硬扛","容易因为小事反复纠结","常常习惯性自我怀疑"],
+            ["性格慢热不擅长主动社交","面对陌生环境容易紧张","很害怕让身边人失望","习惯性过度思虑未来琐事","总是习惯性迁就别人"],
+            ["有完美主义倾向追求极致","犯错后会长时间自我纠结","不擅长调节负面情绪","容易过度在意细节钻牛角尖","很难坦然接纳自己的不完美"],
+            ["习惯隐藏脆弱假装很坚强","不喜欢麻烦任何人","遇事习惯先反思自己问题","容易被他人情绪影响心情","常常觉得自己不够优秀"],
+            ["待人温柔但容易委屈自己","不懂拒绝导致身心疲惫","内心细腻敏感心思很重","习惯性压抑愤怒和不满","经常为别人的错误内耗自己"],
+            ["渴望被理解接纳","害怕独处深夜情绪低落","习惯性自我克制","待人真诚不善伪装","容易心软原谅别人"],
+            ["偏爱简单干净关系","害怕复杂人际交往","容易脑补各种情节","习惯性换位思考体谅","不喜欢与人争抢输赢"],
+            ["性格温柔不争不抢","内心柔软容易受伤","习惯性照顾他人情绪","容易过度认真较真","很难放下过往遗憾"],
+            ["喜欢低调安稳生活","害怕被人看穿内心","习惯性隐藏真实情绪","待人善良不懂防备","容易过度善良吃亏"],
+            ["内心细腻心思很重","遇事谨慎不敢冒险","习惯性自我要求严格","容易焦虑未来未知","常常感到身心疲惫"],
+            ["偏爱独处享受安静","害怕热闹社交场合","习惯性保持礼貌距离","容易共情心软善良","不擅长主动争取"],
+            ["容易害羞不善表达","习惯性迁就包容他人","害怕给别人添麻烦","内心温柔十分暖心","容易自我否定自卑"],
+            ["重感情十分念旧","珍惜每一段相遇缘分","害怕人际关系变淡","容易因为离别难过","习惯性独自治愈自己"],
+            ["做事认真靠谱踏实","容易给自己施加压力","不懂放松只会硬撑","过度操心身边人和事","很难真正松弛自在"],
+            ["内心单纯善良通透","习惯性包容他人缺点","容易原谅别人过错","不爱争抢习惯退让","常常忽略自己感受"]
+        ];
+
+        let nowRoundIndex = 0;
+        let selectArr = [];
+        let allPlayerSelect = [];
+        let currentPlayer = 1;
+        const totalPlayer = 4;
+
+        function initGame(){
+            selectArr = [];
+            currentPlayer = 1;
+            allPlayerSelect = [];
+            document.getElementById("result").innerText = "";
+            document.getElementById("nextBtn").style.display = "none";
+            document.getElementById("sureBtn").disabled = true;
+            document.getElementById("tip").innerText = `玩家${currentPlayer}：请选择 2 张卡牌`;
+            renderCard();
+        }
+
+        function renderCard(){
+            clearCardActive();
+            selectArr = [];
+            let html = "";
+            let cards = cardList[nowRoundIndex];
+            for(let i=0;i<5;i++){
+                html += `<div class="card" onclick="chooseCard(${i},this)"><p>${cards[i]}</p></div>`;
+            }
+            document.getElementById("cardBox").innerHTML = html;
+            document.getElementById("sureBtn").disabled = true;
+        }
+
+        function chooseCard(index,dom){
+            if(selectArr.length >= 2 && !dom.classList.contains("active")) return;
+            if(dom.classList.contains("active")){
+                dom.classList.remove("active");
+                let idx = selectArr.indexOf(index);
+                selectArr.splice(idx,1);
+            }else{
+                dom.classList.add("active");
+                selectArr.push(index);
+            }
+            document.getElementById("sureBtn").disabled = selectArr.length !== 2;
+        }
+
+        function sureSelect(){
+            allPlayerSelect.push([...selectArr]);
+            if(currentPlayer < totalPlayer){
+                currentPlayer++;
+                clearCardActive();
+                selectArr = [];
+                document.getElementById("tip").innerText = `玩家${currentPlayer}：请选择 2 张卡牌`;
+                document.getElementById("sureBtn").disabled = true;
+            }else{
+                judgeResult();
+                document.getElementById("nextBtn").style.display = "inline-block";
+                document.getElementById("sureBtn").disabled = true;
+            }
+        }
+
+        function judgeResult(){
+            let standard = allPlayerSelect[0].sort((a,b)=>a-b);
+            let resText = "本轮结果公示：<br/>";
+            for(let i=1;i<totalPlayer;i++){
+                let playerSelect = allPlayerSelect[i].sort((a,b)=>a-b);
+                if(playerSelect[0]===standard[0] && playerSelect[1]===standard[1]){
+                    resText += `✅ 玩家${i+1}：完全答对！与玩家1选择一致<br/>`;
+                }else{
+                    resText += `❌ 玩家${i+1}：选择不一致，回答错误<br/>`;
+                }
+            }
+            document.getElementById("result").innerHTML = resText;
+        }
+
+        function clearCardActive(){
+            document.querySelectorAll(".card").forEach(item => item.classList.remove("active"));
+        }
+
+        function nextRound(){
+            nowRoundIndex++;
+            if(nowRoundIndex >= cardList.length) nowRoundIndex = 0;
+            initGame();
+        }
+
+        function fullReset(){
+            let randomIndex = Math.floor(Math.random() * cardList.length);
+            while(randomIndex === nowRoundIndex){
+                randomIndex = Math.floor(Math.random() * cardList.length);
+            }
+            nowRoundIndex = randomIndex;
+            initGame();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情绪特工队</title>
+    <style>
+        /* ── 替代 Tailwind CDN 的最小工具类 ── */
+        .absolute { position: absolute; }
+        .top-8 { top: 2rem; }
+        .left-8 { left: 2rem; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .font-black { font-weight: 900; }
+        .text-gray-800 { color: #1f2937; }
+        .tracking-tighter { letter-spacing: -0.05em; }
+        .text-gray-500 { color: #6b7280; }
+        .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        .opacity-80 { opacity: 0.8; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .font-bold { font-weight: 700; }
+        .mt-2 { margin-top: 0.5rem; }
+        .text-\[10px\] { font-size: 10px; }
+        .uppercase { text-transform: uppercase; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .bg-white\/20 { background-color: rgba(255,255,255,0.2); }
+        .rounded { border-radius: 0.25rem; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); }
+        .hidden { display: none !important; }
+        .h-px { height: 1px; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .bg-white { background-color: #ffffff; }
+        .border { border-style: solid; border-width: 1px; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .text-gray-700 { color: #374151; }
+        .hover\:bg-gray-50:hover { background-color: #f9fafb; }
+        .mt-4 { margin-top: 1rem; }
+        .text-gray-400 { color: #9ca3af; }
+        .max-w-\[120px\] { max-width: 120px; }
+
+        /* ── 整体布局：body 竖向 flex，题目栏 + 游戏区 ── */
+        body {
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', sans-serif;
+            background: radial-gradient(circle, #fdfbfb 0%, #ebedee 100%);
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── 题目横幅 ── */
+        .question-bar {
+            flex-shrink: 0;
+            display: none;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.07);
+            padding: 14px 180px 14px 24px;
+            z-index: 40;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            overflow-y: auto;
+            max-height: 42vh;
+        }
+        .question-bar.visible { display: block; }
+
+        .qbar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .qbar-game-title {
+            font-size: 17px;
+            font-weight: 900;
+            color: #1f2937;
+            letter-spacing: -0.04em;
+        }
+        .qbar-counter {
+            font-size: 11px;
+            color: #aaa;
+            background: #f3f4f6;
+            padding: 2px 9px;
+            border-radius: 10px;
+        }
+        .qbar-exit {
+            margin-left: auto;
+            font-size: 12px;
+            color: #bbb;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .qbar-exit:hover { color: #555; background: #f5f5f5; }
+        .qbar-text {
+            font-size: 14px;
+            color: #222;
+            line-height: 1.9;
+        }
+
+        /* ── 游戏区 ── */
+        .game-container {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ── 卡牌轨道 ── */
+        .cards-orbit {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card {
+            position: absolute;
+            width: 120px;
+            height: 180px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+            border: 4px solid transparent;
+            text-align: center;
+            padding: 10px;
+        }
+        .card:hover { transform: scale(1.1) translateY(-10px); z-index: 50; }
+        .card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+            transform: scale(1.05);
+        }
+        .card.single-brush-mode {
+            animation: pulse 1.5s infinite;
+            border-color: #f59e0b;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); border-color: #fbbf24; }
+            100% { transform: scale(1); }
+        }
+
+        .center-logo {
+            width: 180px;
+            height: 180px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.4);
+            z-index: 10;
+            text-align: center;
+        }
+
+        /* ── 控制面板 ── */
+        .controls {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-secondary { background: #10b981; color: white; }
+        .btn-secondary:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+
+        .status-toast {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            border-radius: 30px;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+
+        .emotion-tag { font-size: 0.7rem; text-transform: uppercase; margin-bottom: 8px; opacity: 0.6; }
+        .emotion-word { font-size: 1.2rem; font-weight: bold; }
+
+        .back-link {
+            position: absolute;
+            bottom: 24px;
+            left: 32px;
+            font-size: 13px;
+            color: #aaa;
+            text-decoration: none;
+            z-index: 20;
+        }
+        .back-link:hover { color: #555; }
+
+        @media (max-width: 800px) {
+            .question-bar { padding: 12px 16px; }
+            .cards-orbit { width: 400px; height: 400px; }
+            .card { width: 80px; height: 120px; }
+            .controls { right: 10px; padding: 10px; scale: 0.8; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 题目横幅（题库模式时显示） -->
+    <div id="questionBar" class="question-bar">
+        <div class="qbar-header">
+            <span class="qbar-game-title">情绪特工队</span>
+            <span id="qbarCounter" class="qbar-counter">1 / 50</span>
+            <button class="qbar-exit" onclick="exitQuestionMode()">退出题库</button>
+        </div>
+        <p id="qbarText" class="qbar-text"></p>
+    </div>
+
+    <!-- 游戏区 -->
+    <div class="game-container">
+        <div id="statusToast" class="status-toast"></div>
+
+        <!-- 标题（无题库时显示） -->
+        <div id="gameTitleArea" class="absolute top-8 left-8">
+            <h1 class="text-4xl font-black text-gray-800 tracking-tighter">情绪特工队</h1>
+            <p class="text-gray-500">连接心灵的情绪共鸣</p>
+        </div>
+
+        <!-- 卡牌盘面 -->
+        <div class="cards-orbit" id="cardContainer">
+            <div class="center-logo">
+                <span class="text-xs opacity-80 mb-1">CURRENT ROUND</span>
+                <span class="text-4xl font-bold" id="roundDisplay">01</span>
+                <div class="mt-2 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/20 rounded">Waiting...</div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary shadow-lg">开始游戏</button>
+            <button id="confirmBtn" class="btn btn-secondary shadow-lg hidden">确认选择</button>
+            <div class="h-px bg-gray-200 my-2"></div>
+            <button id="refreshAllBtn" class="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">全刷重选</button>
+            <button id="singleBrushBtn" class="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">单刷模式</button>
+            <button id="exitSingleBrushBtn" class="btn btn-warning hidden">完成单刷</button>
+            <div class="h-px bg-gray-200 my-2"></div>
+            <button id="drawQBtn" class="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" onclick="drawQuestion()">换一道题</button>
+            <div class="mt-4 text-[10px] text-gray-400 max-w-[120px]">
+                题库模式：先抽一道题，大家读完场景后再选情绪。也可直接游戏，无需题目。
+            </div>
+        </div>
+
+        <a class="back-link" href="../">← 返回游戏列表</a>
+    </div>
+
+    <script>
+        // ── 50 道题库 ──
+        const questions = [
+            '对方遇到了极大的挫折（比如工作被降薪），TA却表现得像个没事人一样，自己默默消化，甚至对你客客气气，完全没有想向你倾诉或依赖你的意思。',
+            '你们在一起很久了，对方换了手机密码。当你想看个外卖进度向TA要密码时，TA没有直接告诉你，而是拿过手机自己默默解开锁再递给你。',
+            '对方宁愿花钱去叫货拉拉、请跑腿、或者麻烦普通朋友，也不愿意开口让你顺路去帮个忙，甚至说："我不想总麻烦你。"',
+            '提起你家里的烦心事（比如你父母吵架），TA的语气像是在听隔壁办公室的八卦，虽然在安慰你，但眼神里写满了"那是你家的事，与我无关"。',
+            '两个人去逛街，你随口说了一句这个包/这个手办挺好看的。TA立刻说："喜欢就自己买呗，反正你工资也够。"',
+            '你遇到委屈忍不住哭了出来，对方没有抱你，而是立刻拿出纸笔，开始理性地帮你分析这件事你错在第几步、对方为什么这么做、你下一步应该怎么写邮件。',
+            '你在路上看到一朵形状特别像你们家猫咪的云，兴奋地拍下来发给TA。TA过了三个小时，在微信里回了一个："哦。"',
+            '对方在刷短视频或者看朋友圈时，无意中叹了口气感叹："你看谁谁的老公/老婆，又会做饭又能搞副业，真羡慕。"',
+            '你的项目拿了奖，你兴高采烈地跟TA说。TA却说："这算什么，你们行业现在整体都不行，你这点成绩也就是运气好。"',
+            '你跟TA吐槽今天加班到腰酸背痛。TA立刻接话："你这算什么？我今天开了四个会，PPT改了三版，我比你累多了好吗？"',
+            '对方带你参加TA的朋友聚会，整晚TA都和其他人聊得热火朝天，玩内行梗，把你一个人晾在旁边尴尬地玩手机，连菜都没人帮你转。',
+            '在聚餐时，对方为了活跃气氛，把你平时非常在意的一个身体缺陷（比如脱发、微胖）或者私密糗事当成笑话讲给大家听，大家都在笑，你却觉得很难堪。',
+            '对方开车顺路送你和TA的一个异性朋友。那个朋友很自然地拉开门坐到了副驾驶，而你被默认为应该去坐后排。',
+            '对方的朋友圈发得很勤快，有风景、有美食、有加班，甚至有和同事的合影，但从来没有出现过任何关于你的蛛丝马迹，在外人看来TA仿佛是个单身。',
+            '在外人面前，TA对你关怀备至、剥虾夹菜，是个满分伴侣；但只要一回到家、车门一关，TA的脸立刻垮下来，一句话都不想跟你多说。',
+            '你兴高采烈地换了一身新衣服准备出门，TA上下打量了你一眼，皱着眉头说："你现在怎么喜欢这种风格？不仅显胖，而且看起来好土，快去换掉。"',
+            '对方总喜欢用一种说教、居高临下的语气指点你。不仅是你的工作，甚至连你剥鸡蛋的方式、拿筷子的姿势，TA都要纠正你。',
+            '对方强行帮你推掉了你原本想去的聚会或者课程，理由是"那些人没素质/那个课是割韭菜的，我是为你好，不想让你浪费时间"。',
+            '只要两人的意见一不合，对方就立刻开始砸东西、自残、或者用一种绝望的语气说："全都是我的错行了吧？你满意了吗？"让你不得不为了平息事态而妥协。',
+            '只要你尝试做一些新的挑战（比如学开车、学英语），TA的第一反应永远是："得了吧，就你那三分钟热度，别浪费那个钱了。"',
+            '对方有一个走得很近的异性死党，两个人会在深夜两点聊天，甚至在对方失恋时，你的伴侣会丢下你过去陪TA一整晚。',
+            '你们俩原本商量好的一件事（比如五一去哪玩），TA回家跟TA妈通了个电话，立马回过头来推翻所有计划，说："我妈说那个地方不好玩/不划算。"',
+            '对方背着你，把原本属于你们小家庭的一大笔存款，借给了TA的亲戚或者朋友，直到你查账时发现，TA才敷衍地说："人家急用，我能不帮吗？"',
+            '在对方父母家吃晚饭，公婆/岳父母在饭桌上明里暗里地挑剔你、指责你，而你的伴侣坐在旁边低头猛吃，一句话都不敢帮你争辩。',
+            '你无意中看到对方的网易云音乐年度歌单，或者手机里的某个私密相册，发现里面全都是TA写给前任的歌，或者保留至今的恋爱合影。',
+            '两个人躺在同一张床上，但除了背对背各自玩手机、刷视频，已经连续几个月没有在睡前聊过超过三句的真心话了。',
+            '自从家里养了猫/狗，对方每天下班回家的第一件事是和宠物亲热，买各种昂贵的宠物用品，而对你，TA连一句"你今天累不累"都懒得问。',
+            '哪怕是周年纪念日去吃西餐，对方的手机也一直放在桌上噼里啪啦回微信，甚至吃到一半还要在餐厅走廊开个紧急电话会议。',
+            '难得过个节，你想去一家精致一点的餐厅浪漫一下，对方却一直在旁边算账："这菜成本也就十块钱，你在交智商税，不如去吃路边摊。"',
+            '对方偷偷在游戏里充值、或者背着你买高额的数码产品，直到快递被你撞见或者信用卡账单打过来，TA才支支吾吾承认。',
+            '你在焦虑地看房、看存折、做体检、规划两人的未来；而对方依然处于"一人吃饱全家不饿"的状态，下班就是打游戏，毫无危机感。',
+            '你烧到39度，浑身无力躺在床上。对方看了一眼说："吃点药多喝热水，我今晚约了哥们通宵开黑，饭在桌上你自己热一下。"',
+            '问TA去哪玩，TA永远说"随便"；但当你熬夜做了三套攻略发给TA时，TA又一个个挑刺，觉得这个太远、那个没意思、另一个门票太贵。',
+            '你的毕业典礼、或者你人生中非常重要的晋升晚宴，对方因为"今天游戏工会要公测/某个老同学聚会"而选择了不来。',
+            '对方在外面给朋友随礼、请客出手极其大方，甚至有点死要面子活受罪，导致你们当月的小家庭恩爱基金严重缩水。',
+            '你最近因为压力大胖了几斤，或者长了几颗痘。当你凑过去想亲TA时，你明显捕捉到了TA眼神里闪过的一丝嫌弃和下意识的后撤。',
+            '对方在和别人聊天时，谈到了一个比较深奥的话题（比如宏观经济），你刚想插句话，对方立刻打断你："你不懂这个，别瞎插嘴。"',
+            '你第一次带你关系最好的闺蜜/哥们和TA一起吃饭，席间TA表现得非常冷漠、不怎么说话、甚至一直在低头玩手机，让你在朋友面前感到极其丢脸。',
+            '满怀期待打开对方送的生日礼物，发现是一件极其不合你心意、甚至像是积分兑换、或者是路边摊随便买来搞笑凑数的商品。',
+            '无论你做什么决定（比如挑个餐厅、买个电器），TA的第一反应永远是去网上查一下或者问问别人，仿佛你做出的每一个选择都一定是不靠谱的。',
+            '本来今天只是因为"谁去拿快递"这种小事拌嘴，对方却突然冷笑一声，开始把你三年前迟到、两年前忘了TA生日的事情一件件数落一遍。',
+            '两个人吵架后，对方既不发火也不沟通，直接把你当成空气。在同一个屋檐下生活，TA从你身边经过甚至不带看你一眼，持续一个星期。',
+            '当你积压了很久的情绪终于爆发、认真地想找TA谈谈时，TA叹了一口气，用一种看无理取闹的小孩的眼神看着你："你又怎么了？天天哪来那么多戏？"',
+            '对方出去和朋友喝酒到凌晨不接电话，你不能生气；而你下班和同事聚餐晚回了半小时，手机没电了，TA就微信轰炸，怀疑你出轨。',
+            '每次争吵，TA都凭借着超强的逻辑和口才把你怼到哑口无言。TA看着你委屈的样子，露出了胜利者的微笑，却从来不问你难不难过。',
+            '家里的日常用品（纸巾、洗衣液、垃圾袋）没了，TA永远只会大喊一声"老婆/老公，我们家那个没有了"，却从来不会自己去网购或者超市买一下。',
+            '谈恋爱几年了，TA对你的朋友圈子、你的兴趣爱好表现得毫无好奇心，你邀请了TA无数次，TA的回复永远是："那是你们玩的东西，我去干嘛。"',
+            '你的某个理财或者投资亏了钱，正在心疼。对方走过来不仅没有安慰，反而一副高高在上的样子："看吧，我早就说过了吧，你就是不听我的。"',
+            '走在街上，你下意识地想去牵TA的手，TA却因为"天气太热"或者"大马路上不好看"而把手抽了回去，各走各的。',
+            '你提议周末要不要去尝试一下新开的密室逃脱或者看个电影，TA瘫在沙发上动也不动："都谈了这么多年了，整这些虚的干嘛，在家躺着省钱不好吗？"'
+        ];
+
+        let qUsed = [];
+
+        function drawQuestion() {
+            if (qUsed.length >= questions.length) {
+                qUsed = [];
+                showToast('题库已全部抽完，重新洗牌');
+            }
+            const available = questions.map((_, i) => i).filter(i => !qUsed.includes(i));
+            const idx = available[Math.floor(Math.random() * available.length)];
+            qUsed.push(idx);
+
+            document.getElementById('qbarText').textContent = questions[idx];
+            document.getElementById('qbarCounter').textContent = qUsed.length + ' / 50';
+            document.getElementById('questionBar').classList.add('visible');
+            document.getElementById('gameTitleArea').style.display = 'none';
+        }
+
+        function exitQuestionMode() {
+            document.getElementById('questionBar').classList.remove('visible');
+            document.getElementById('gameTitleArea').style.display = '';
+        }
+
+        // ── 情绪词库 ──
+        const emotions = {
+            positive: [
+                '兴奋', '欣喜', '狂喜', '满足', '自豪', '感激', '宁静', '乐观', '自信', '充满希望',
+                '愉悦', '惬意', '惊喜', '被爱', '灵感', '敬畏', '狂热', '欢快', '舒心', '神清气爽',
+                '迷恋', '心醉', '幸福', '充满活力', '如释重负', '心花怒放', '受宠若惊', '心安', '朝气蓬勃', '顽皮'
+            ],
+            neutral: [
+                '平静', '犹豫', '淡定', '困惑', '好奇', '怀旧', '惊讶', '沉思', '客观', '警惕',
+                '迷茫', '淡然', '矛盾', '不知所措', '木然', '深沉', '试探', '无所谓', '期待', '专注',
+                '诧异', '若有所思', '防备', '严肃', '感性', '冷静', '思考', '敏感', '复杂', '寻思'
+            ],
+            negative: [
+                '愤怒', '焦虑', '忧伤', '失落', '恐惧', '绝望', '嫉妒', '沮丧', '羞愧', '自卑',
+                '厌恶', '烦躁', '压力', '孤独', '悔恨', '冷漠', '心碎', '不安', '惶恐', '悲愤',
+                '委屈', '尴尬', '懊恼', '惊恐', '惆怅', '哀怨', '愤懑', '羞耻', '无助', '苦闷', '消沉', '忧郁', '痛苦'
+            ]
+        };
+
+        let gameState = {
+            phase: 'idle',
+            playerASelection: null,
+            playerBSelection: null,
+            isSingleBrushMode: false,
+            currentCards: [],
+            round: 1
+        };
+
+        const cardContainer = document.getElementById('cardContainer');
+        const startBtn = document.getElementById('startBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const refreshAllBtn = document.getElementById('refreshAllBtn');
+        const singleBrushBtn = document.getElementById('singleBrushBtn');
+        const exitSingleBrushBtn = document.getElementById('exitSingleBrushBtn');
+        const statusToast = document.getElementById('statusToast');
+        const roundDisplay = document.getElementById('roundDisplay');
+
+        function init() {
+            generateCardSet();
+            renderCards();
+            startBtn.onclick = startGame;
+            confirmBtn.onclick = handleConfirm;
+            refreshAllBtn.onclick = () => { generateCardSet(); renderCards(); showToast('已刷新所有情绪词'); };
+            singleBrushBtn.onclick = toggleSingleBrushMode;
+            exitSingleBrushBtn.onclick = toggleSingleBrushMode;
+        }
+
+        function generateCardSet() {
+            const set = [
+                ...getRandomEmotions('positive', 3),
+                ...getRandomEmotions('neutral', 2),
+                ...getRandomEmotions('negative', 3)
+            ];
+            gameState.currentCards = set.sort(() => Math.random() - 0.5);
+        }
+
+        function getRandomEmotions(type, count) {
+            const shuffled = [...emotions[type]].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, count).map(word => ({ word, type }));
+        }
+
+        function renderCards() {
+            document.querySelectorAll('.card').forEach(c => c.remove());
+            const radius = 240;
+            const total = 8;
+            gameState.currentCards.forEach((item, i) => {
+                const angle = (i * (360 / total)) * (Math.PI / 180);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.left = `calc(50% + ${x}px - 60px)`;
+                card.style.top = `calc(50% + ${y}px - 90px)`;
+                const colors = { positive: '#ecfdf5', neutral: '#fefce8', negative: '#fef2f2' };
+                const textColors = { positive: '#059669', neutral: '#ca8a04', negative: '#dc2626' };
+                card.style.backgroundColor = colors[item.type];
+                card.innerHTML = `
+                    <div class="emotion-tag" style="color:${textColors[item.type]}">${item.type}</div>
+                    <div class="emotion-word text-gray-800">${item.word}</div>
+                `;
+                card.onclick = () => onCardClick(i, card);
+                cardContainer.appendChild(card);
+            });
+        }
+
+        function onCardClick(index, cardElement) {
+            if (gameState.isSingleBrushMode) {
+                const types = ['positive', 'neutral', 'negative'];
+                const newWord = getRandomEmotions(types[Math.floor(Math.random() * types.length)], 1)[0];
+                gameState.currentCards[index] = newWord;
+                renderCards();
+                showToast(`已更换：${newWord.word}`);
+                return;
+            }
+            if (gameState.phase === 'playerA' || gameState.phase === 'playerB') {
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                cardElement.classList.add('selected');
+                if (gameState.phase === 'playerA') gameState.playerASelection = index;
+                else gameState.playerBSelection = index;
+                confirmBtn.classList.remove('hidden');
+            }
+        }
+
+        function startGame() {
+            gameState.phase = 'playerA';
+            gameState.playerASelection = null;
+            gameState.playerBSelection = null;
+            startBtn.classList.add('hidden');
+            showToast('请玩家 A 选择一个当下的情绪');
+            updateUI();
+        }
+
+        function handleConfirm() {
+            if (gameState.phase === 'playerA') {
+                gameState.phase = 'playerB';
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                confirmBtn.classList.add('hidden');
+                showToast('玩家 A 选择完毕，请玩家 B 猜测');
+            } else if (gameState.phase === 'playerB') {
+                checkResult();
+            }
+        }
+
+        function checkResult() {
+            const isMatch = gameState.playerASelection === gameState.playerBSelection;
+            gameState.phase = 'finished';
+            confirmBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
+            startBtn.innerText = '再来一局';
+            if (isMatch) {
+                const word = gameState.currentCards[gameState.playerASelection].word;
+                showToast(`✨ 同感成功！你们都感受到了"${word}"`, 5000);
+                createConfetti();
+            } else {
+                const wordA = gameState.currentCards[gameState.playerASelection].word;
+                const wordB = gameState.currentCards[gameState.playerBSelection].word;
+                showToast(`未命中。A 是"${wordA}"，B 猜是"${wordB}"`, 5000);
+            }
+            gameState.round++;
+            roundDisplay.innerText = gameState.round.toString().padStart(2, '0');
+        }
+
+        function toggleSingleBrushMode() {
+            gameState.isSingleBrushMode = !gameState.isSingleBrushMode;
+            if (gameState.isSingleBrushMode) {
+                singleBrushBtn.classList.add('hidden');
+                exitSingleBrushBtn.classList.remove('hidden');
+                document.querySelectorAll('.card').forEach(c => c.classList.add('single-brush-mode'));
+                showToast('单刷模式：点击任意卡牌更换词汇');
+            } else {
+                singleBrushBtn.classList.remove('hidden');
+                exitSingleBrushBtn.classList.add('hidden');
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('single-brush-mode'));
+                showToast('单刷结束');
+            }
+        }
+
+        function showToast(msg, duration = 3000) {
+            statusToast.innerText = msg;
+            statusToast.style.opacity = 1;
+            setTimeout(() => { statusToast.style.opacity = 0; }, duration);
+        }
+
+        function updateUI() {
+            const centerDiv = document.querySelector('.center-logo div');
+            if (gameState.phase === 'playerA') centerDiv.innerText = 'PLAYER A TURN';
+            if (gameState.phase === 'playerB') centerDiv.innerText = 'PLAYER B TURN';
+            if (gameState.phase === 'finished') centerDiv.innerText = 'ROUND END';
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const conf = document.createElement('div');
+                conf.style.cssText = `position:absolute;width:10px;height:10px;background:hsl(${Math.random()*360},70%,50%);left:50%;top:50%;z-index:1000;border-radius:50%;`;
+                document.body.appendChild(conf);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 100 + Math.random() * 200;
+                conf.animate([
+                    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                    { transform: `translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px) scale(0)`, opacity: 0 }
+                ], { duration: 1000 + Math.random() * 1000, easing: 'ease-out' }).onfinish = () => conf.remove();
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

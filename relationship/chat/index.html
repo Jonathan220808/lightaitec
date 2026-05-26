@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', sans-serif;
+        }
+        body {
+            background: #f5f7fa;
+            padding: 30px 20px;
+        }
+        .back {
+            display: inline-block;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: #aaa;
+            text-decoration: none;
+        }
+        .back:hover { color: #666; }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-weight: 500;
+        }
+        .reset-btn {
+            position: absolute;
+            right: 0;
+            top: -10px;
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #999;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-box {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .diff-btn {
+            flex: 1;
+            padding: 14px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #fff;
+            transition: 0.2s;
+        }
+        .easy { background: #52c41a; }
+        .middle { background: #1890ff; }
+        .hard { background: #722ed1; }
+        .diff-btn:active { opacity: 0.85; }
+        .content-box {
+            background: #fff;
+            min-height: 260px;
+            padding: 30px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #00000015;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .question {
+            font-size: 17px;
+            color: #444;
+            line-height: 1.9;
+            text-align: center;
+        }
+        .tips {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div style="max-width:600px;margin:0 auto;">
+        <a class="back" href="../">← 返回游戏列表</a>
+    </div>
+    <div class="container">
+        <h1>聊天游戏</h1>
+        <button class="reset-btn" onclick="resetAll()">一键重置</button>
+
+        <div class="btn-box">
+            <button class="diff-btn easy" onclick="getQuestion('easy')">简单</button>
+            <button class="diff-btn middle" onclick="getQuestion('middle')">中等</button>
+            <button class="diff-btn hard" onclick="getQuestion('hard')">困难</button>
+        </div>
+
+        <div class="content-box">
+            <div class="question" id="showQ">点击上方按钮抽取聊天问题</div>
+        </div>
+
+        <div class="tips">抽过题目永不重复 | 重置即可重新抽取</div>
+    </div>
+
+    <script>
+        const questionList = {
+            easy: [
+                "你最近有没有哪一个瞬间，突然觉得今天还挺幸福的？",
+                "你小时候最喜欢放学后的什么感觉？",
+                "你会不会有那种特别喜欢的天气？",
+                "你最近有没有循环很久的一首歌？",
+                "你会更喜欢：一个人散步，还是和舒服的人一起乱逛？",
+                "你有没有那种「虽然很普通，但会让你开心的小事」？",
+                "你小时候有没有很奇怪但特别坚持的小梦想？",
+                "你会不会有一种食物，一吃就很有安全感？",
+                "你旅游的时候更喜欢计划好，还是随缘走？",
+                "你有没有一个地方，会让你特别想反复回去？",
+                "你觉得你小时候和现在最大的变化是什么？",
+                "你觉得别人最容易误解你的点是什么？",
+                "你有没有一种：以前很在意，现在突然没那么在意的东西？",
+                "你会更容易被什么样的人吸引：有趣的人，还是稳定的人？",
+                "你会不会对那种很push的人天然有点累？",
+                "你一般怎么判断一个人相处起来舒不舒服？",
+                "你有没有那种：第一次见面就感觉这个人气场不对的经验？",
+                "你觉得真正成熟的人是什么样？"
+            ],
+            middle: [
+                "你会不会有时候特别想安静，不想解释自己？",
+                "你觉得人与人之间最难的事情是什么？",
+                "你小时候最被爱的一次记忆是什么？",
+                "你有没有一个到现在都记得的拥抱？",
+                "你人生里有没有一个人，改变过你很多？",
+                "你有没有一次特别被理解的感觉？",
+                "你有没有那种：表面没事，但其实心里记了很久的话？",
+                "你觉得你会比较容易隐藏情绪吗？",
+                "你有没有某个阶段特别孤独？",
+                "你小时候会更像现在的你，还是完全不一样？",
+                "你有没有一个现在回想起来还是会心软的人？",
+                "你有没有某个瞬间，突然觉得自己长大了？",
+                "你觉得关系里最重要的东西是什么？",
+                "你觉得真正的尊重是什么？",
+                "你会不会觉得很多人其实不太懂边界感？",
+                "你觉得人为什么会想控制别人？",
+                "你觉得爱更像：陪伴、理解、还是选择？",
+                "你觉得人会因为被爱，而变得更勇敢吗？"
+            ],
+            hard: [
+                "你会不会有时候其实很需要别人，但第一反应却是后退？",
+                "你更害怕：被误解，还是被看穿？",
+                "你有没有一种：其实很想被坚定选择，但又不太相信会发生的感觉？",
+                "你会不会觉得，有的人出现以后，你会突然变得不像平时的自己？",
+                "你会对什么样的人慢慢卸下防备？",
+                "你有没有那种：其实已经难过了，但还是会先顾别人感受的时候？",
+                "你觉得人与人之间最舒服的距离感是什么？",
+                "你有没有经历过：明明关系没有吵架，但就是慢慢走散了？",
+                "你觉得真正的偏爱，应该是什么样子？",
+                "你会不会其实很讨厌那种，需要不断证明自己值得被爱的时候？",
+                "你有没有一个一直藏得很深，别人不太知道的自己？",
+                "你最不想变成什么样的大人？",
+                "你觉得自己最敏感的地方是什么？",
+                "你有没有那种：夜里突然情绪很重，但白天又像没事一样的阶段？",
+                "你会不会经常把很多情绪自己消化掉？",
+                "你觉得自己更像：外热内冷，还是外冷内热的人？",
+                "你有没有一种，其实很想表达，但总觉得说出来会被误解的东西？",
+                "你觉得你这些年，是在越来越靠近自己，还是越来越不像自己？",
+                "你会不会有时候觉得，别人喜欢的只是'你好相处的那部分'？",
+                "你有没有一个瞬间，突然意识到自己其实也很需要被照顾？",
+                "你觉得被真正理解，是一种什么感觉？",
+                "你会更容易因为什么而心动：细节、情绪、陪伴，还是安全感？",
+                "你觉得人为什么会在亲密关系里受伤？",
+                "你有没有一种：越在乎的人，反而越不知道怎么靠近的感觉？",
+                "你觉得爱里最难做到的事情是什么？",
+                "你会不会觉得，有的人不是不温柔，只是太害怕受伤了？",
+                "你觉得长期关系里，新鲜感和安全感哪个更重要？",
+                "你会因为一个人的情绪稳定，而慢慢喜欢上他吗？",
+                "你有没有那种：本来已经习惯一个人，但后来突然开始想分享生活的时候？",
+                "你觉得真正高级的喜欢，更像靠近，还是允许？",
+                "你有没有一种，现在回头看，其实改变了你整个人生轨迹的小瞬间？",
+                "你觉得孤独更像：没人陪，还是没人懂？",
+                "你会不会觉得，很多人其实一生都没真正表达过自己？",
+                "你有没有一个阶段，特别想从世界里消失几天？",
+                "你觉得人为什么会渴望被看见？",
+                "你有没有一种，明明已经很努力了，却还是觉得自己不够好的时候？",
+                "你觉得成长最痛的一部分是什么？",
+                "你有没有发现，有时候人最脆弱的时候，反而最真实？",
+                "你觉得一个人真正强大之后，会变成什么样？",
+                "你觉得人与人之间最深的连接，到底是什么？"
+            ]
+        };
+
+        let usedIndex = { easy:[], middle:[], hard:[] };
+
+        function getQuestion(type){
+            let list = questionList[type];
+            let used = usedIndex[type];
+            let avail = list.filter((_,i)=>!used.includes(i));
+            if(avail.length===0){
+                document.getElementById("showQ").innerText = "该难度题目已抽完，点重置即可";
+                return;
+            }
+            let rnd = Math.floor(Math.random()*avail.length);
+            let q = avail[rnd];
+            let idx = list.indexOf(q);
+            used.push(idx);
+            document.getElementById("showQ").innerText = q;
+        }
+
+        function resetAll(){
+            usedIndex = { easy:[], middle:[], hard:[] };
+            document.getElementById("showQ").innerText = "点击上方按钮抽取聊天问题";
+        }
+    </script>
+</body>
+</html>
