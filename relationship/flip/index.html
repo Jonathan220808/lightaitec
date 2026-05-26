@@ -37,6 +37,7 @@
             transition:0.2s;border:2px solid transparent;
         }
         .card.active{border-color:#409eff;background:#ecf5ff;transform:scale(1.03);}
+        .card.revealed{border-color:#67c23a;background:#f0f9eb;transform:scale(1.03);box-shadow:0 4px 16px rgba(103,194,58,0.25);}
         .card p{font-size:15px;color:#333;line-height:1.7;margin:0;font-weight:500;}
         .btn-group{margin:20px 0;display:flex;gap:15px;justify-content:center;flex-wrap:wrap;}
         .btn{padding:10px 24px;border:none;background:#409eff;color:#fff;border-radius:6px;font-size:15px;cursor:pointer;transition:0.2s;font-family:inherit;}
@@ -159,6 +160,7 @@
                 html += `<div class="card" onclick="chooseCard(${i},this)"><p>${cards[i]}</p></div>`;
             }
             document.getElementById("cardBox").innerHTML = html;
+            document.getElementById("cardBox").style.pointerEvents = "";
             document.getElementById("sureBtn").disabled = true;
         }
 
@@ -194,15 +196,28 @@
         }
 
         function judgeResult(){
-            const standard = [...allPlayerSelect[0]].sort((a,b)=>a-b);
+            const standard = [...allPlayerSelect[0]];
             const cards = cardList[nowRoundIndex];
-            let resText = `<span style="color:#333;font-weight:normal;font-size:15px">玩家1的选择：「${cards[standard[0]]}」和「${cards[standard[1]]}」</span><br/><br/>`;
-            for(let i=1; i<totalPlayer; i++){
-                const ps = [...allPlayerSelect[i]].sort((a,b)=>a-b);
-                const match = ps[0]===standard[0] && ps[1]===standard[1];
-                resText += match
-                    ? `✅ 玩家${i+1}：猜对了！<br/>`
-                    : `❌ 玩家${i+1}：猜错了（选了「${cards[ps[0]]}」和「${cards[ps[1]]}」）<br/>`;
+
+            // 高亮玩家1的选择，禁止继续点击
+            document.getElementById("cardBox").style.pointerEvents = "none";
+            document.querySelectorAll(".card").forEach((el, i) => {
+                el.classList.remove("active");
+                if(standard.includes(i)) el.classList.add("revealed");
+            });
+
+            let resText = '';
+            for(let i = 1; i < totalPlayer; i++){
+                const ps = [...allPlayerSelect[i]];
+                const matchCount = ps.filter(idx => standard.includes(idx)).length;
+                if(matchCount === 2){
+                    resText += `✅ 玩家${i+1}：全猜对了！<br/>`;
+                } else if(matchCount === 1){
+                    const rightIdx = ps.find(idx => standard.includes(idx));
+                    resText += `🌓 玩家${i+1}：猜中了一张「${cards[rightIdx]}」<br/>`;
+                } else {
+                    resText += `❌ 玩家${i+1}：全猜错了<br/>`;
+                }
             }
             document.getElementById("result").innerHTML = resText;
         }
