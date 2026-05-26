@@ -249,7 +249,7 @@
     <div id="questionBar" class="question-bar">
         <div class="qbar-header">
             <span class="qbar-game-title">情绪特工队</span>
-            <span id="qbarCounter" class="qbar-counter">1 / 50</span>
+
             <button class="qbar-exit" onclick="exitQuestionMode()">退出题库</button>
         </div>
         <p id="qbarText" class="qbar-text"></p>
@@ -359,7 +359,6 @@
             qUsed.push(idx);
 
             document.getElementById('qbarText').textContent = questions[idx];
-            document.getElementById('qbarCounter').textContent = qUsed.length + ' / 50';
             document.getElementById('questionBar').classList.add('visible');
             document.getElementById('gameTitleArea').style.display = 'none';
         }
@@ -553,7 +552,7 @@
             }
         }
 
-        window.onload = init;
+        window.onload = function() { init(); drawQuestion(); };
     </script>
 </body>
 </html>
