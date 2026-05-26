@@ -3,23 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>粤剧咖啡 · 你是哪个角色 · Cantonese Opera Coffee</title>
+<title>一隅 · 小游戏合集 · lightaitec</title>
+<meta name="description" content="几个用 AI 做的小游戏，为具体的人，解决一点具体的小事。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lobster&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="hub.css">
 </head>
 <body>
 
-<div id="app">
-  <!-- All screens render here -->
-</div>
+<header class="hub-header">
+  <div class="hub-brand">一隅 · <span class="brand-en">A Corner</span></div>
+  <nav class="hub-nav">
+    <a href="#games">游戏</a>
+    <a href="#about">关于</a>
+  </nav>
+</header>
 
-<script src="data.js"></script>
-<script src="data-active.js"></script>
-<script src="portraits.js"></script>
-<script src="app.js"></script>
+<main>
+  <section class="hub-hero">
+    <div class="hero-eyebrow">AI VIBE GAMES · 00后 · 不会写代码</div>
+    <h1 class="hero-title">玩一个小游戏，<br>遇见一个具体的自己</h1>
+    <p class="hero-sub">Small games, made with AI — for real, specific people.</p>
+    <a class="hero-cta" href="#games">看看有什么 ↓</a>
+  </section>
+
+  <section class="games-grid" id="games">
+    <div class="section-label">现在能玩的 · NOW PLAYING</div>
+
+    <a class="game-card" href="/yueju/">
+      <div class="card-thumb thumb-yueju">
+        <img src="/yueju/logo.jpg" alt="粤剧咖啡" />
+      </div>
+      <div class="card-body">
+        <div class="card-no">第 01 号</div>
+        <h2 class="card-title">粤剧咖啡</h2>
+        <p class="card-sub-en">Cantonese Opera · Coffee</p>
+        <p class="card-desc">回答六个问题，照一张相，看看你是哪一位粤剧角色。给没接触过戏曲的你，一张走进剧场的门票。</p>
+        <span class="card-enter">进入 →</span>
+      </div>
+    </a>
+
+    <div class="game-card game-card--soon">
+      <div class="card-thumb thumb-soon">
+        <div class="soon-mark">？</div>
+      </div>
+      <div class="card-body">
+        <div class="card-no">第 02 号</div>
+        <h2 class="card-title">亲密关系</h2>
+        <p class="card-sub-en">Intimacy · coming soon</p>
+        <p class="card-desc">关于亲密关系的小游戏，正在做。</p>
+        <span class="card-enter card-enter--soon">即将上线</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="hub-about" id="about">
+    <div class="about-inner">
+      <div class="about-label">关于 · ABOUT</div>
+      <p class="about-text">
+        我是一个不会写代码的 00后，靠 AI 每周做一个小游戏——
+        每一个，都想为一个<strong>具体的人</strong>，解决一件<strong>具体的小事</strong>。
+      </p>
+      <p class="about-text-en">
+        A maker who can’t write code, shipping one small AI-built game a week —
+        each for one specific person, one specific small thing.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="hub-foot">
+  <div>lightaitec.com</div>
+  <div class="foot-light">用 AI 做的 · 还在长大</div>
+</footer>
 
 </body>
 </html>

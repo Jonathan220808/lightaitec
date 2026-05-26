@@ -1,0 +1,294 @@
+/* ============================================================
+   一隅 · 小游戏合集 — landing / hub page
+   Shares the warm Cantonese palette of the games, but lighter
+   and more "foyer" than "stage". Avoids generic AI aesthetics:
+   serif type, Cantonese red, asymmetric hero, tactile cards.
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg-deep:    #f5e8c8;
+  --bg-card:    #fdf2d0;
+  --bg-hi:      #fff9e0;
+  --gold:       #c4243a;   /* Cantonese red */
+  --gold-deep:  #a01a2e;
+  --green:      #3a6a4a;
+  --yellow:     #f0b830;
+  --ink:        #2a1a0a;
+  --ink-soft:   #5a3a2a;
+  --ink-mute:   rgba(42, 26, 10, 0.55);
+  --ink-faint:  rgba(42, 26, 10, 0.28);
+  --border-warm:#d0a868;
+  --serif-cn: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+  --serif-en: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+}
+
+html, body {
+  background: var(--bg-deep);
+  color: var(--ink);
+  font-family: var(--serif-cn);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 75% 0%, rgba(240, 184, 48, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(196, 36, 58, 0.08), transparent 55%),
+    linear-gradient(160deg, #fcf2d0 0%, #f5e8c8 55%, #efdfb2 100%);
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.hub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px clamp(20px, 5vw, 56px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.hub-brand {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+.hub-brand .brand-en {
+  font-family: var(--serif-en);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--ink-mute);
+  letter-spacing: 0.04em;
+}
+.hub-nav { display: flex; gap: 24px; }
+.hub-nav a {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.25s, color 0.25s;
+}
+.hub-nav a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hub-hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(48px, 11vh, 120px) clamp(20px, 5vw, 56px) clamp(40px, 8vh, 80px);
+  text-align: left;
+}
+.hero-eyebrow {
+  font-family: var(--serif-en);
+  font-size: 0.82rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.hero-title {
+  font-size: clamp(2.2rem, 7vw, 4.4rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  margin-bottom: 22px;
+}
+.hero-sub {
+  font-family: var(--serif-en);
+  font-style: italic;
+  font-size: clamp(1rem, 2.4vw, 1.4rem);
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+  max-width: 540px;
+}
+.hero-cta {
+  display: inline-block;
+  font-size: 0.98rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  border-bottom: 1.5px solid var(--gold);
+  padding-bottom: 3px;
+  transition: transform 0.25s ease, color 0.25s;
+}
+.hero-cta:hover { transform: translateY(2px); color: var(--gold-deep); }
+
+/* ============================================================
+   GAMES GRID
+   ============================================================ */
+.games-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 56px) clamp(40px, 8vh, 80px);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 28px;
+}
+.section-label {
+  grid-column: 1 / -1;
+  font-family: var(--serif-en);
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-warm);
+  margin-bottom: 6px;
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+.game-card:not(.game-card--soon):hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(196, 36, 58, 0.16), 0 4px 12px rgba(42, 26, 10, 0.08);
+  border-color: var(--gold);
+}
+
+.card-thumb {
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.thumb-yueju {
+  background:
+    repeating-linear-gradient(90deg, #fdf2cc 0 18px, #f8dc88 18px 36px);
+}
+.card-thumb img {
+  height: 150px;
+  width: auto;
+  border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(42, 26, 10, 0.18);
+}
+.thumb-soon {
+  background: linear-gradient(135deg, #ece0c0 0%, #e2d3a8 100%);
+}
+.soon-mark {
+  font-family: var(--serif-en);
+  font-size: 4rem;
+  color: rgba(42, 26, 10, 0.18);
+  font-weight: 600;
+}
+
+.card-body { padding: 22px 24px 26px; display: flex; flex-direction: column; flex: 1; }
+.card-no {
+  font-family: var(--serif-en);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.card-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  color: var(--ink);
+}
+.card-sub-en {
+  font-family: var(--serif-en);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+}
+.card-desc {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin-bottom: 18px;
+  flex: 1;
+}
+.card-enter {
+  align-self: flex-start;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  font-weight: 500;
+}
+.game-card--soon { opacity: 0.78; }
+.card-enter--soon { color: var(--ink-mute); font-weight: 400; }
+
+/* ============================================================
+   ABOUT
+   ============================================================ */
+.hub-about {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(40px, 8vh, 80px) clamp(20px, 5vw, 56px);
+}
+.about-inner {
+  max-width: 760px;
+  border-left: 3px solid var(--gold);
+  padding-left: 28px;
+}
+.about-label {
+  font-family: var(--serif-en);
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.about-text {
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  line-height: 1.85;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+.about-text strong { color: var(--gold); font-weight: 600; }
+.about-text-en {
+  font-family: var(--serif-en);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--ink-mute);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.hub-foot {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 5vw, 56px) 48px;
+  border-top: 1px solid var(--border-warm);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--serif-en);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--ink-mute);
+}
+.foot-light { color: var(--ink-faint); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 600px) {
+  .hub-nav { gap: 16px; }
+  .games-grid { grid-template-columns: 1fr; gap: 20px; }
+  .hero-title { line-height: 1.25; }
+  .about-inner { padding-left: 18px; }
+}
