@@ -140,7 +140,8 @@
             ["容易记住被善待的瞬间","也容易记住被辜负的时刻","不轻易表达但情深","习惯用行动代替言语","很在乎但不擅长说出口"]
         ];
 
-        let nowRoundIndex = 0;
+        const cardPool = cardList.flat(); // 240 张牌打散成大池子
+        let currentCards = [];           // 当前这轮的 5 张
         let selectArr = [];
         let allPlayerSelect = [];
         let currentPlayer = 1;
@@ -151,7 +152,6 @@
             document.getElementById('countScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             document.getElementById('modeTag').textContent = n + ' 人模式';
-            nowRoundIndex = Math.floor(Math.random() * cardList.length);
             initGame();
         }
 
@@ -174,10 +174,11 @@
         function renderCard(){
             clearCardActive();
             selectArr = [];
+            const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+            currentCards = shuffled.slice(0, 5);
             let html = "";
-            let cards = cardList[nowRoundIndex];
             for(let i=0;i<5;i++){
-                html += `<div class="card" onclick="chooseCard(${i},this)"><p>${cards[i]}</p></div>`;
+                html += `<div class="card" onclick="chooseCard(${i},this)"><p>${currentCards[i]}</p></div>`;
             }
             document.getElementById("cardBox").innerHTML = html;
             document.getElementById("cardBox").style.pointerEvents = "";
@@ -217,7 +218,7 @@
 
         function judgeResult(){
             const standard = [...allPlayerSelect[0]];
-            const cards = cardList[nowRoundIndex];
+            const cards = currentCards;
 
             // 高亮玩家1的选择，禁止继续点击
             document.getElementById("cardBox").style.pointerEvents = "none";
@@ -247,13 +248,10 @@
         }
 
         function nextRound(){
-            nowRoundIndex++;
-            if(nowRoundIndex >= cardList.length) nowRoundIndex = 0;
             initGame();
         }
 
         function fullReset(){
-            nowRoundIndex = Math.floor(Math.random() * cardList.length);
             initGame();
         }
     </script>
