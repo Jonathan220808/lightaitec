@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feeling 同感 - 情绪互动游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: radial-gradient(circle, #fdfbfb 0%, #ebedee 100%);
+            overflow: hidden;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 环形布局计算 */
+        .cards-orbit {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card {
+            position: absolute;
+            width: 120px;
+            height: 180px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+            border: 4px solid transparent;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .card:hover {
+            transform: scale(1.1) translateY(-10px);
+            z-index: 50;
+        }
+
+        .card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+            transform: scale(1.05);
+        }
+
+        .card.single-brush-mode {
+            animation: pulse 1.5s infinite;
+            border-color: #f59e0b;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); border-color: #fbbf24; }
+            100% { transform: scale(1); }
+        }
+
+        .center-logo {
+            width: 180px;
+            height: 180px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.4);
+            z-index: 10;
+            text-align: center;
+        }
+
+        /* 按钮面板 */
+        .controls {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        
+        .btn-secondary { background: #10b981; color: white; }
+        .btn-secondary:hover { background: #059669; }
+
+        .btn-warning { background: #f59e0b; color: white; }
+        
+        .status-toast {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            border-radius: 30px;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .emotion-tag {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+
+        .emotion-word {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 800px) {
+            .cards-orbit { width: 400px; height: 400px; }
+            .card { width: 80px; height: 120px; }
+            .controls { right: 10px; padding: 10px; scale: 0.8; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <!-- 提示信息 -->
+        <div id="statusToast" class="status-toast"></div>
+
+        <!-- 标题区域 -->
+        <div class="absolute top-8 left-8">
+            <h1 class="text-4xl font-black text-gray-800 tracking-tighter">FEELING 同感</h1>
+            <p class="text-gray-500">连接心灵的情绪共鸣</p>
+        </div>
+
+        <!-- 游戏盘面 -->
+        <div class="cards-orbit" id="cardContainer">
+            <div class="center-logo">
+                <span class="text-xs opacity-80 mb-1">CURRENT ROUND</span>
+                <span class="text-4xl font-bold" id="roundDisplay">01</span>
+                <div class="mt-2 text-[10px] uppercase tracking-widest px-2 py-1 bg-white/20 rounded">Waiting...</div>
+            </div>
+            <!-- 卡牌由 JS 生成 -->
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary shadow-lg">开始游戏</button>
+            <button id="confirmBtn" class="btn btn-secondary shadow-lg hidden">确认选择</button>
+            <div class="h-px bg-gray-200 my-2"></div>
+            <button id="refreshAllBtn" class="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">全刷重选</button>
+            <button id="singleBrushBtn" class="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">单刷模式</button>
+            <button id="exitSingleBrushBtn" class="btn btn-warning hidden">完成单刷</button>
+            <div class="mt-4 text-[10px] text-gray-400 max-w-[120px]">
+                游戏规则：玩家A选一个，玩家B猜，看你们是否有“同感”。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 100个情绪词库
+        const emotions = {
+            positive: [
+                "兴奋", "欣喜", "狂喜", "满足", "自豪", "感激", "宁静", "乐观", "自信", "充满希望",
+                "愉悦", "惬意", "惊喜", "被爱", "灵感", "敬畏", "狂热", "欢快", "舒心", "神清气爽",
+                "迷恋", "心醉", "幸福", "充满活力", "如释重负", "心花怒放", "自豪", "受宠若惊", "心安", "朝气蓬勃", "好奇", "有趣", "顽皮"
+            ],
+            neutral: [
+                "平静", "犹豫", "淡定", "困惑", "好奇", "怀旧", "惊讶", "沉思", "客观", "警惕",
+                "迷茫", "淡然", "矛盾", "不知所措", "木然", "深沉", "试探", "无所谓", "期待", "专注",
+                "诧异", "若有所思", "防备", "严肃", "期待", "感性", "冷静", "思考", "敏感", "复杂", "寻思", "疑虑", "惊奇"
+            ],
+            negative: [
+                "愤怒", "焦虑", "忧伤", "失落", "恐惧", "绝望", "嫉妒", "沮丧", "羞愧", "自卑",
+                "厌恶", "烦躁", "压力", "孤独", "悔恨", "冷漠", "心碎", "不安", "惶恐", "悲愤",
+                "委屈", "尴尬", "懊恼", "惊恐", "惆怅", "哀怨", "愤懑", "羞耻", "卑微", "无助", "苦闷", "消沉", "忧郁", "痛苦"
+            ]
+        };
+
+        let gameState = {
+            phase: 'idle', // idle, playerA, playerB, finished
+            playerASelection: null,
+            playerBSelection: null,
+            isSingleBrushMode: false,
+            currentCards: [],
+            round: 1
+        };
+
+        const cardContainer = document.getElementById('cardContainer');
+        const startBtn = document.getElementById('startBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const refreshAllBtn = document.getElementById('refreshAllBtn');
+        const singleBrushBtn = document.getElementById('singleBrushBtn');
+        const exitSingleBrushBtn = document.getElementById('exitSingleBrushBtn');
+        const statusToast = document.getElementById('statusToast');
+        const roundDisplay = document.getElementById('roundDisplay');
+
+        // 初始化
+        function init() {
+            generateCardSet();
+            renderCards();
+            
+            startBtn.onclick = startGame;
+            confirmBtn.onclick = handleConfirm;
+            refreshAllBtn.onclick = () => {
+                generateCardSet();
+                renderCards();
+                showToast("已刷新所有情绪词");
+            };
+            singleBrushBtn.onclick = toggleSingleBrushMode;
+            exitSingleBrushBtn.onclick = toggleSingleBrushMode;
+        }
+
+        // 生成一组符合比例的卡牌（30% 积极, 30% 中性, 40% 消极/其他）
+        function generateCardSet() {
+            const set = [];
+            // 8张卡：3张积极，2张中性，3张消极
+            set.push(...getRandomEmotions('positive', 3));
+            set.push(...getRandomEmotions('neutral', 2));
+            set.push(...getRandomEmotions('negative', 3));
+            
+            // 洗牌
+            gameState.currentCards = set.sort(() => Math.random() - 0.5);
+        }
+
+        function getRandomEmotions(type, count) {
+            const list = emotions[type];
+            const shuffled = [...list].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, count).map(word => ({ word, type }));
+        }
+
+        // 渲染卡牌布局
+        function renderCards() {
+            // 清除除了中心 logo 以外的所有内容
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(c => c.remove());
+
+            const radius = 240;
+            const total = 8;
+
+            gameState.currentCards.forEach((item, i) => {
+                const angle = (i * (360 / total)) * (Math.PI / 180);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.left = `calc(50% + ${x}px - 60px)`;
+                card.style.top = `calc(50% + ${y}px - 90px)`;
+                
+                // 根据类型设置轻微背景色
+                const colors = { positive: '#ecfdf5', neutral: '#fefce8', negative: '#fef2f2' };
+                const textColors = { positive: '#059669', neutral: '#ca8a04', negative: '#dc2626' };
+                
+                card.style.backgroundColor = colors[item.type];
+                card.innerHTML = `
+                    <div class="emotion-tag" style="color: ${textColors[item.type]}">${item.type}</div>
+                    <div class="emotion-word text-gray-800">${item.word}</div>
+                `;
+
+                card.onclick = () => onCardClick(i, card);
+                cardContainer.appendChild(card);
+            });
+        }
+
+        function onCardClick(index, cardElement) {
+            if (gameState.isSingleBrushMode) {
+                // 单刷逻辑
+                const types = ['positive', 'neutral', 'negative'];
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                const newWord = getRandomEmotions(randomType, 1)[0];
+                gameState.currentCards[index] = newWord;
+                renderCards();
+                showToast(`已更换：${newWord.word}`);
+                return;
+            }
+
+            if (gameState.phase === 'playerA' || gameState.phase === 'playerB') {
+                // 取消之前选中的
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                cardElement.classList.add('selected');
+                
+                if (gameState.phase === 'playerA') gameState.playerASelection = index;
+                else gameState.playerBSelection = index;
+
+                confirmBtn.classList.remove('hidden');
+            }
+        }
+
+        function startGame() {
+            gameState.phase = 'playerA';
+            gameState.playerASelection = null;
+            gameState.playerBSelection = null;
+            startBtn.classList.add('hidden');
+            showToast("请玩家 A 选择一个当下的情绪");
+            updateUI();
+        }
+
+        function handleConfirm() {
+            if (gameState.phase === 'playerA') {
+                gameState.phase = 'playerB';
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                confirmBtn.classList.add('hidden');
+                showToast("玩家 A 选择完毕，请玩家 B 猜测");
+            } else if (gameState.phase === 'playerB') {
+                checkResult();
+            }
+        }
+
+        function checkResult() {
+            const isMatch = gameState.playerASelection === gameState.playerBSelection;
+            gameState.phase = 'finished';
+            confirmBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
+            startBtn.innerText = "再来一局";
+
+            if (isMatch) {
+                const word = gameState.currentCards[gameState.playerASelection].word;
+                showToast(`✨ 同感成功！你们都感受到了“${word}”`, 5000);
+                createConfetti();
+            } else {
+                const wordA = gameState.currentCards[gameState.playerASelection].word;
+                const wordB = gameState.currentCards[gameState.playerBSelection].word;
+                showToast(`未命中。A 是“${wordA}”，B 猜是“${wordB}”`, 5000);
+            }
+            
+            gameState.round++;
+            roundDisplay.innerText = gameState.round.toString().padStart(2, '0');
+        }
+
+        function toggleSingleBrushMode() {
+            gameState.isSingleBrushMode = !gameState.isSingleBrushMode;
+            if (gameState.isSingleBrushMode) {
+                singleBrushBtn.classList.add('hidden');
+                exitSingleBrushBtn.classList.remove('hidden');
+                document.querySelectorAll('.card').forEach(c => c.classList.add('single-brush-mode'));
+                showToast("单刷模式：点击任意卡牌更换词汇");
+            } else {
+                singleBrushBtn.classList.remove('hidden');
+                exitSingleBrushBtn.classList.add('hidden');
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('single-brush-mode'));
+                showToast("单刷结束");
+            }
+        }
+
+        function showToast(msg, duration = 3000) {
+            statusToast.innerText = msg;
+            statusToast.style.opacity = 1;
+            setTimeout(() => {
+                statusToast.style.opacity = 0;
+            }, duration);
+        }
+
+        function updateUI() {
+            const centerBtn = document.querySelector('.center-logo div');
+            if(gameState.phase === 'playerA') centerBtn.innerText = "PLAYER A TURN";
+            if(gameState.phase === 'playerB') centerBtn.innerText = "PLAYER B TURN";
+            if(gameState.phase === 'finished') centerBtn.innerText = "ROUND END";
+        }
+
+        // 简单的撒花效果
+        function createConfetti() {
+            for(let i=0; i<30; i++) {
+                const conf = document.createElement('div');
+                conf.style.position = 'absolute';
+                conf.style.width = '10px';
+                conf.style.height = '10px';
+                conf.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 50%)`;
+                conf.style.left = '50%';
+                conf.style.top = '50%';
+                conf.style.zIndex = '1000';
+                conf.style.borderRadius = '50%';
+                document.body.appendChild(conf);
+
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 100 + Math.random() * 200;
+                const tx = Math.cos(angle) * dist;
+                const ty = Math.sin(angle) * dist;
+
+                conf.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 1000 + Math.random()*1000,
+                    easing: 'ease-out'
+                }).onfinish = () => conf.remove();
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
