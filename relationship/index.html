@@ -7,198 +7,259 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:        #FFF8F2;
-      --card:      #FFFDF9;
-      --accent:    #C4735A;
-      --accent-dk: #9A4A30;
-      --soft:      #F5E6DC;
-      --text:      #1C1008;
-      --muted:     #9A7A68;
-      --ease:      cubic-bezier(0.16, 1, 0.3, 1);
+      --bg:    #E8E3DB;
+      --card:  #FFFFFF;
+      --text:  #1A1108;
+      --muted: #8A8078;
+      --tag:   #DEDAD3;
+      --ease:  cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* 每个游戏的专属色 */
+      --c1: #5E8CB5;   /* 心灵奇旅 · 石板蓝   */
+      --c2: #B46880;   /* 情绪特工队 · 玫瑰粉 */
+      --c3: #5D8F72;   /* 翻出真心 · 鼠尾草绿 */
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+      background: var(--bg);
       min-height: 100vh;
-      background:
-        radial-gradient(ellipse 110% 45% at 50% 0%, rgba(196,115,90,.16) 0%, transparent 68%),
-        #FFF8F2;
-      padding: 60px 24px 88px;
+      padding: 72px 24px 96px;
       color: var(--text);
     }
 
-    /* ── 顶部装饰 ── */
+    .container { max-width: 720px; margin: 0 auto; }
+
+    /* ── 标题区 ── */
     .header {
-      text-align: center;
-      margin-bottom: 56px;
+      margin-bottom: 52px;
       opacity: 0;
-      animation: up .9s var(--ease) .06s forwards;
+      animation: up .9s var(--ease) 0s forwards;
     }
-    .header-ornament {
-      display: block;
-      font-size: 22px;
-      color: var(--accent);
-      opacity: .55;
+    .header-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
       margin-bottom: 14px;
-      letter-spacing: .4em;
     }
     .header h1 {
-      font-family: 'Noto Serif SC','STSong',serif;
-      font-size: 42px;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 46px;
       font-weight: 900;
+      line-height: 1.18;
+      letter-spacing: -.01em;
       color: var(--text);
-      letter-spacing: .06em;
-      line-height: 1.15;
     }
-    .header-line {
-      width: 36px;
-      height: 2px;
-      background: var(--accent);
-      border-radius: 2px;
-      margin: 16px auto 14px;
-      opacity: .65;
-    }
-    .header p {
-      font-size: 14px;
+    .header h1 span {
+      display: block;
+      font-weight: 400;
       color: var(--muted);
-      letter-spacing: .04em;
+      font-size: 40px;
     }
 
-    /* ── 卡片列表 ── */
+    /* ── 游戏卡片 ── */
     .games {
-      max-width: 460px;
-      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
-    a.card {
+    a.game-card {
       display: flex;
-      align-items: center;
-      gap: 20px;
+      align-items: stretch;
       background: var(--card);
-      border-radius: 20px;
-      padding: 24px 26px;
-      border-left: 3.5px solid var(--accent);
-      box-shadow: 0 4px 24px rgba(44,18,6,.08);
+      border-radius: 24px;
+      overflow: hidden;
       text-decoration: none;
       color: inherit;
-      transition: box-shadow .28s var(--ease), transform .22s var(--ease);
+      min-height: 210px;
+      box-shadow: 0 2px 20px rgba(0,0,0,.07);
       opacity: 0;
+      transition: transform .28s var(--ease), box-shadow .28s var(--ease);
     }
-    a.card:nth-child(1){animation:up .72s var(--ease) .22s forwards;}
-    a.card:nth-child(2){animation:up .72s var(--ease) .34s forwards;}
-    a.card:nth-child(3){animation:up .72s var(--ease) .46s forwards;}
-    a.card:hover { box-shadow:0 10px 40px rgba(196,115,90,.16); transform:translateY(-4px); }
-    a.card:active{ transform:translateY(-2px); }
+    a.game-card:nth-child(1) { animation: up .72s var(--ease) .12s forwards; }
+    a.game-card:nth-child(2) { animation: up .72s var(--ease) .22s forwards; }
+    a.game-card:nth-child(3) { animation: up .72s var(--ease) .32s forwards; }
+    a.game-card:hover  { transform: translateY(-5px); box-shadow: 0 18px 48px rgba(0,0,0,.12); }
+    a.game-card:active { transform: translateY(-2px); }
 
-    .icon {
-      width: 56px; height: 56px;
-      border-radius: 16px;
-      background: var(--soft);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
-      flex-shrink: 0;
+    /* ── 左侧文字 ── */
+    .card-text {
+      flex: 1;
+      padding: 40px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
-
-    .info h2 {
-      font-family: 'Noto Serif SC','STSong',serif;
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 5px;
-      letter-spacing: .02em;
-    }
-    .info p { font-size: 13px; color: var(--muted); line-height: 1.7; }
-
-    .tag {
-      display: inline-block;
-      margin-top: 9px;
+    .card-num {
       font-size: 11px;
-      padding: 3px 12px;
-      border-radius: 100px;
-      background: var(--soft);
-      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .card-text h2 {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .01em;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .card-text p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.85;
+      margin-bottom: 22px;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 11px;
       font-weight: 600;
-      letter-spacing: .04em;
+      letter-spacing: .06em;
+      padding: 5px 14px;
+      border-radius: 100px;
+      background: var(--tag);
+      color: var(--muted);
+      align-self: flex-start;
     }
 
-    /* ── 底部说明 ── */
-    .privacy {
-      max-width: 460px;
-      margin: 52px auto 0;
+    /* ── 右侧色块 ── */
+    .card-visual {
+      width: 270px;
+      flex-shrink: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .card-visual.v1 { background: var(--c1); }
+    .card-visual.v2 { background: var(--c2); }
+    .card-visual.v3 { background: var(--c3); }
+
+    /* 背景装饰圆 */
+    .card-visual::before {
+      content: '';
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      border: 40px solid rgba(255,255,255,.08);
+      top: 50%;
+      left: 60%;
+      transform: translate(-50%, -50%);
+    }
+    .card-visual::after {
+      content: '';
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 24px solid rgba(255,255,255,.06);
+      bottom: -30px;
+      left: -30px;
+    }
+
+    .visual-num {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 128px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.04em;
+      color: rgba(255,255,255,.22);
+      position: relative;
+      z-index: 1;
+      user-select: none;
+    }
+
+    /* ── 底部注释 ── */
+    .footer {
+      margin-top: 56px;
       text-align: center;
       font-size: 11px;
-      color: #C5B0A5;
-      line-height: 2;
+      color: #B4ADA5;
+      letter-spacing: .03em;
       opacity: 0;
-      animation: up .7s var(--ease) .62s forwards;
-    }
-    .dot {
-      display: inline-block;
-      width: 5px; height: 5px;
-      background: var(--accent);
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: 5px;
-      opacity: .4;
-      position: relative; top: -1px;
+      animation: up .6s var(--ease) .5s forwards;
     }
 
     @keyframes up {
-      from { opacity:0; transform:translateY(26px); }
-      to   { opacity:1; transform:translateY(0);    }
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0);    }
     }
-    @media (prefers-reduced-motion:reduce){
-      *{animation:none!important;opacity:1!important;}
+
+    /* ── 移动端 ── */
+    @media (max-width: 580px) {
+      body { padding: 52px 16px 80px; }
+      .header h1      { font-size: 36px; }
+      .header h1 span { font-size: 30px; }
+      a.game-card     { flex-direction: column; min-height: auto; }
+      .card-visual    { width: 100%; height: 150px; }
+      .visual-num     { font-size: 88px; }
+      .card-text      { padding: 28px 24px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; opacity: 1 !important; }
     }
   </style>
 </head>
 <body>
+  <div class="container">
 
-  <div class="header">
-    <span class="header-ornament">· · ·</span>
-    <h1>关系游戏</h1>
-    <div class="header-line"></div>
-    <p>帮助彼此更了解的互动游戏</p>
+    <div class="header">
+      <p class="header-label">互动小游戏</p>
+      <h1>关系游戏<span>让彼此更了解。</span></h1>
+    </div>
+
+    <div class="games">
+
+      <a class="game-card" href="./chat/">
+        <div class="card-text">
+          <span class="card-num">01</span>
+          <h2>心灵奇旅</h2>
+          <p>按深度抽取话题，从轻松到深入，让对话自然流动。</p>
+          <span class="card-tag">1–2人 · 话题抽取</span>
+        </div>
+        <div class="card-visual v1">
+          <span class="visual-num">01</span>
+        </div>
+      </a>
+
+      <a class="game-card" href="./feeling/">
+        <div class="card-text">
+          <span class="card-num">02</span>
+          <h2>情绪特工队</h2>
+          <p>玩家 A 选一个情绪，玩家 B 猜——看你们是否心有灵犀。</p>
+          <span class="card-tag">2人 · 情绪共鸣</span>
+        </div>
+        <div class="card-visual v2">
+          <span class="visual-num">02</span>
+        </div>
+      </a>
+
+      <a class="game-card" href="./flip/">
+        <div class="card-text">
+          <span class="card-num">03</span>
+          <h2>翻出真心</h2>
+          <p>每人选 2 张卡牌，看看彼此内心深处的共同点。</p>
+          <span class="card-tag">2–4人 · 自我探索</span>
+        </div>
+        <div class="card-visual v3">
+          <span class="visual-num">03</span>
+        </div>
+      </a>
+
+    </div>
+
+    <p class="footer">本页不收集任何数据，所有游戏均在你的设备本地运行。</p>
+
   </div>
-
-  <div class="games">
-
-    <a class="card" href="./chat/">
-      <div class="icon">💬</div>
-      <div class="info">
-        <h2>心灵奇旅</h2>
-        <p>按深度抽取话题，从轻松到深入，让对话自然流动。</p>
-        <span class="tag">1–2人 · 话题抽取</span>
-      </div>
-    </a>
-
-    <a class="card" href="./feeling/">
-      <div class="icon">🎭</div>
-      <div class="info">
-        <h2>情绪特工队</h2>
-        <p>玩家 A 选一个情绪，玩家 B 猜——看你们是否心有灵犀。</p>
-        <span class="tag">2人 · 情绪共鸣</span>
-      </div>
-    </a>
-
-    <a class="card" href="./flip/">
-      <div class="icon">🃏</div>
-      <div class="info">
-        <h2>翻出真心</h2>
-        <p>每人选 2 张卡牌，看看彼此内心深处的共同点。</p>
-        <span class="tag">2–4人 · 自我探索</span>
-      </div>
-    </a>
-
-  </div>
-
-  <div class="privacy">
-    <span class="dot"></span>本页不收集任何数据，所有游戏均在你的设备本地运行。
-  </div>
-
 </body>
 </html>
