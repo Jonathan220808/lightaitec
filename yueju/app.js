@@ -525,6 +525,11 @@ function render() {
     const video = document.getElementById('camera-video');
     if (video) video.srcObject = state.cameraStream;
   }
+
+  /* After ticket render, play folding-fan entrance animation */
+  if (state.screen === 'ticket') {
+    playFanReveal();
+  }
 }
 
 /* ========================================
@@ -692,10 +697,142 @@ $app.addEventListener('click', (e) => {
       state.faceWeights = null;
       state.capturedPhoto = null;
       stopCamera();
+      /* Reset fan animation guard so it plays again next round */
+      const prevTicket = document.getElementById('ticket-capture');
+      if (prevTicket) delete prevTicket.dataset.fanPlayed;
       render();
       break;
   }
 });
+
+/* ========================================
+   FAN REVEAL ANIMATION
+   Ticket entrance: 9 colored panels rotate
+   outward from a shared bottom-center pivot,
+   simulating a Chinese folding fan opening.
+   ======================================== */
+function playFanReveal() {
+  /* Guard: only play once per ticket render */
+  const ticket = document.getElementById('ticket-capture');
+  if (!ticket || ticket.dataset.fanPlayed) return;
+  ticket.dataset.fanPlayed = 'true';
+
+  /* Two RAFs: ensures layout is fully painted before we measure */
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+
+      const rect   = ticket.getBoundingClientRect();
+      const W      = rect.width;
+      const H      = rect.height;
+      const N      = 9;
+
+      /* Alternating deep-red / warm-gold panels, like 粤剧 stage curtain */
+      const COLORS = [
+        '#6B1212', '#D4A460', '#8B1A1A',
+        '#C8955A', '#7B1616',
+        '#C8955A', '#8B1A1A',
+        '#D4A460', '#6B1212'
+      ];
+
+      /* ── Overlay: fixed, positioned exactly over the ticket ── */
+      const overlay = document.createElement('div');
+      overlay.style.cssText =
+        'position:fixed;' +
+        'top:'    + rect.top  + 'px;' +
+        'left:'   + rect.left + 'px;' +
+        'width:'  + W + 'px;' +
+        'height:' + H + 'px;' +
+        'z-index:999;pointer-events:none;overflow:visible;';
+      document.body.appendChild(overlay);
+
+      /* Hide ticket content; disable save button during animation */
+      ticket.style.opacity  = '0';
+      ticket.style.transition = 'none';
+      const saveBtn = document.querySelector('[data-action="save-ticket"]');
+      if (saveBtn) saveBtn.disabled = true;
+
+      /* ── Build N panels ── */
+      /*
+        Each panel is full overlay size (inset:0), clip-path restricts
+        it to its own strip.  transform-origin:50% 100% = bottom-center
+        of the overlay = bottom-center of the ticket.  All panels share
+        the same pivot, so they rotate like ribs of a folding fan.
+
+        Geometry:
+          open angle of rib i  = atan2(dx, H/2)
+            where dx = center-x-of-strip − W/2
+          closed rotation      = −openAngle
+            (rotates rib to point straight up from pivot)
+        Animation: closed → 0° (natural/open)
+      */
+      const panels = [];
+      for (let i = 0; i < N; i++) {
+        const centerT  = (i + 0.5) / N;
+        const dx       = (centerT - 0.5) * W;
+        const openDeg  = Math.atan2(dx, H / 2) * (180 / Math.PI);
+        const closedDeg = -openDeg;
+
+        const leftPct  = (i       / N * 100).toFixed(2);
+        const rightPct = ((N-i-1) / N * 100).toFixed(2);
+
+        const p = document.createElement('div');
+        p.style.cssText =
+          'position:absolute;inset:0;' +
+          'background:' + COLORS[i] + ';' +
+          /* clip-path shows only this rib's strip */
+          'clip-path:inset(0 ' + rightPct + '% 0 ' + leftPct + '%);' +
+          /* shared pivot = ticket bottom-centre */
+          'transform-origin:50% 100%;' +
+          'transform:rotate(' + closedDeg.toFixed(2) + 'deg);' +
+          /* thin gold rib line on right edge */
+          'box-shadow:inset -1.5px 0 0 rgba(210,175,60,0.75);' +
+          'will-change:transform,opacity;';
+        overlay.appendChild(p);
+        panels.push({ el: p });
+      }
+
+      /* ── Stagger & animate ──
+         Outer ribs first (most travel), centre rib last.
+         delay: edges=0 ms, centre=MAX_STAGGER ms
+      */
+      const SPREAD_DUR  = 560;  /* ms, swing-into-place duration */
+      const MAX_STAGGER = 200;  /* ms extra wait for centre rib   */
+      const EASING      = 'cubic-bezier(0.34,1.35,0.64,1)'; /* spring */
+
+      panels.forEach(function (panel, i) {
+        const distFromCenter =
+          Math.abs(i - (N - 1) / 2) / ((N - 1) / 2); /* 1=edge, 0=centre */
+        const delay = Math.round((1 - distFromCenter) * MAX_STAGGER);
+
+        setTimeout(function () {
+          panel.el.style.transition =
+            'transform ' + SPREAD_DUR + 'ms ' + EASING;
+          panel.el.style.transform = 'rotate(0deg)';
+        }, delay);
+      });
+
+      /* ── Fade out overlay, fade in ticket ── */
+      const fadeDelay = MAX_STAGGER + SPREAD_DUR + 60;
+
+      setTimeout(function () {
+        overlay.style.transition  = 'opacity 360ms ease';
+        overlay.style.opacity     = '0';
+        ticket.style.transition   = 'opacity 420ms ease';
+        ticket.style.opacity      = '1';
+      }, fadeDelay);
+
+      /* ── Clean up ── */
+      const cleanupAt = fadeDelay + 440;
+      setTimeout(function () {
+        overlay.remove();
+        ticket.style.opacity    = '';
+        ticket.style.transition = '';
+        if (saveBtn) saveBtn.disabled = false;
+      }, cleanupAt);
+
+    }); /* end second RAF */
+  }); /* end first RAF */
+}
 
 /* ========================================
    SAVE TICKET AS PNG
