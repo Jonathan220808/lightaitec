@@ -193,6 +193,22 @@
     .reveal-prompt strong { color:var(--text); }
     .btn-row { display:flex; flex-direction:column; gap:10px; }
 
+    /* 换场景小链接 */
+    .change-scene-link {
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      font-size:12px; color:rgba(154,128,112,.55); letter-spacing:.03em;
+      padding:12px 0 0; display:block; width:100%; text-align:center;
+      transition:color .2s;
+    }
+    .change-scene-link:hover { color:var(--accent); }
+
+    /* 首页超淡链接 */
+    .home-link-tiny {
+      font-size:11px; color:rgba(154,128,112,.4); text-decoration:none;
+      letter-spacing:.04em; transition:color .2s;
+    }
+    .home-link-tiny:hover { color:var(--muted); }
+
     .end-wrap { text-align:center; padding:48px 0 0; }
     .end-emoji { font-size:68px; margin-bottom:24px; }
     .end-title {
@@ -229,7 +245,10 @@
 
 <!-- ② 场景屏 -->
 <div id="scenarioScreen" class="screen">
-  <a href="#" class="back" onclick="goStart();return false;">← 重新开始</a>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <a href="#" class="back" style="margin-bottom:0" onclick="goStart();return false;">← 重新开始</a>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
   <div class="progress-bar">
     <div class="progress-dots" id="progressDots"></div>
     <span class="progress-label" id="progressLabel"></span>
@@ -238,8 +257,8 @@
   <div class="scenario-card">
     <p class="scenario-text" id="scenarioText"></p>
   </div>
-  <button class="btn btn-ghost" style="margin-bottom:12px" onclick="changeScenario()">↻ 换一个场景</button>
   <button class="btn btn-primary" onclick="startBetA()">A 先来押注</button>
+  <button class="change-scene-link" onclick="changeScenario()">↻ 换一个场景</button>
 </div>
 
 <!-- ③ 押注屏（A / B 共用） -->
@@ -253,6 +272,9 @@
   <div class="needs-grid" id="needsGrid"></div>
   <button id="refreshAllBtn" class="btn btn-ghost" style="margin-bottom:12px" onclick="refreshAllNeeds()">↻ 换一批需求</button>
   <button class="btn btn-primary btn-disabled" id="confirmBtn" onclick="confirmBet()">确认押注</button>
+  <div style="text-align:center;margin-top:20px">
+    <a href="../" class="home-link-tiny">← 返回首页</a>
+  </div>
 </div>
 
 <!-- ④ 交接屏 -->
@@ -299,8 +321,7 @@
 </div>
 
 <script>
-const TOTAL_HEARTS   = 3;
-const ROUNDS_PER_GAME = 5;
+const TOTAL_HEARTS = 3;
 
 const needsPool = [
   "被听见","被理解","被认可","被记住细节","被夸","被接住情绪",
@@ -339,7 +360,8 @@ const scenarios = [
   { text:"今天发生了一件让你很触动的事",                     defaults:["被听见","被理解","被陪伴","被特别在意","被主动找","知道你在这里"] }
 ];
 
-let selectedScenarios = [];
+let currentScenario   = null;
+let usedScenarioTexts = new Set();
 let currentRound      = 0;
 let currentNeeds      = [];
 let needsAfterA       = [];
@@ -366,31 +388,39 @@ function shuffle(arr) {
 
 function goStart() { showScreen('startScreen'); }
 
+function pickNewScenario() {
+  let available = scenarios.filter(s => !usedScenarioTexts.has(s.text));
+  if (!available.length) {
+    usedScenarioTexts.clear();
+    available = [...scenarios];
+  }
+  currentScenario = available[Math.floor(Math.random() * available.length)];
+  usedScenarioTexts.add(currentScenario.text);
+}
+
 function startGame() {
-  selectedScenarios = shuffle(scenarios).slice(0, ROUNDS_PER_GAME);
+  usedScenarioTexts.clear();
   currentRound = 0;
+  pickNewScenario();
   showScenario();
 }
 
 function showScenario() {
-  const dotsEl = document.getElementById('progressDots');
-  dotsEl.innerHTML = '';
-  for (let i = 0; i < ROUNDS_PER_GAME; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i < currentRound ? ' done' : i === currentRound ? ' current' : '');
-    dotsEl.appendChild(d);
-  }
-  document.getElementById('progressLabel').textContent = `第 ${currentRound + 1} / ${ROUNDS_PER_GAME} 轮`;
-  document.getElementById('scenarioText').textContent = selectedScenarios[currentRound].text;
+  document.getElementById('progressLabel').textContent = `第 ${currentRound + 1} 轮`;
+  document.getElementById('scenarioText').textContent = currentScenario.text;
   showScreen('scenarioScreen');
 }
 
 function changeScenario() {
-  const usedTexts = new Set(selectedScenarios.map(s => s.text));
-  const available = scenarios.filter(s => !usedTexts.has(s.text));
-  if (!available.length) return;
+  usedScenarioTexts.delete(currentScenario.text); // 释放当前，允许之后再出现
+  let available = scenarios.filter(s => !usedScenarioTexts.has(s.text));
+  if (!available.length) {
+    available = scenarios.filter(s => s.text !== currentScenario.text);
+    if (!available.length) return;
+  }
   const pick = available[Math.floor(Math.random() * available.length)];
-  selectedScenarios[currentRound] = pick;
+  usedScenarioTexts.add(pick.text);
+  currentScenario = pick;
   showScenario();
 }
 
@@ -398,7 +428,7 @@ function startBetA() {
   isPhaseA = true;
   heartA = {};
   heartsLeftA = TOTAL_HEARTS;
-  currentNeeds = shuffle([...selectedScenarios[currentRound].defaults]).slice(0, 5);
+  currentNeeds = shuffle([...currentScenario.defaults]).slice(0, 5);
   renderBet();
   showScreen('betScreen');
 }
@@ -416,9 +446,7 @@ function renderBet() {
   const hearts     = isPhaseA ? heartA : heartB;
   const heartsLeft = isPhaseA ? heartsLeftA : heartsLeftB;
   const color      = isPhaseA ? 'var(--pA)' : 'var(--pB)';
-  const label      = isPhaseA ? 'A' : 'B';
-
-  document.getElementById('betScenarioMini').textContent = selectedScenarios[currentRound].text;
+  document.getElementById('betScenarioMini').textContent = currentScenario.text;
 
   document.getElementById('playerTag').innerHTML =
     `<div class="player-dot" style="background:${color}"></div>
@@ -518,7 +546,7 @@ function confirmBet() {
 }
 
 function showReveal() {
-  document.getElementById('revealScenario').textContent = selectedScenarios[currentRound].text;
+  document.getElementById('revealScenario').textContent = currentScenario.text;
 
   // B 看的就是 A 的那 5 张，直接展示
   const displayNeeds = [...needsAfterA];
@@ -559,19 +587,15 @@ function showReveal() {
     promptEl.innerHTML = '<p>看看哪里有差别<br><strong>聊聊那里的感受吧 ✨</strong></p>';
   }
 
-  document.getElementById('nextBtn').textContent =
-    currentRound < ROUNDS_PER_GAME - 1 ? '下一个场景 →' : '结束游戏';
+  document.getElementById('nextBtn').textContent = '下一个场景 →';
 
   showScreen('revealScreen');
 }
 
 function nextRound() {
   currentRound++;
-  if (currentRound >= ROUNDS_PER_GAME) {
-    showScreen('endScreen');
-  } else {
-    showScenario();
-  }
+  pickNewScenario();
+  showScenario();
 }
 </script>
 </body>
