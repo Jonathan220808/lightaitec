@@ -277,7 +277,63 @@
             z-index: 100;
             opacity: 0;
             transition: opacity 0.3s;
-            white-space: nowrap;
+            white-space: pre-line;
+            text-align: center;
+            max-width: 80vw;
+            line-height: 1.8;
+        }
+
+        /* ── 公布玩家1选的牌 ── */
+        .card.revealed {
+            border-color: #67c23a !important;
+            background: #f0f9eb !important;
+            transform: scale(1.2) !important;
+            box-shadow: 0 0 28px rgba(103,194,58,.45) !important;
+            z-index: 60;
+        }
+
+        /* ── 人数选择屏 ── */
+        .count-screen {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background:
+                radial-gradient(ellipse 110% 45% at 50% 0%, rgba(196,115,90,.12) 0%, transparent 65%),
+                var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .count-screen h1 {
+            font-family: 'Noto Serif SC','STSong',serif;
+            font-size: 26px; font-weight: 900; color: var(--text); margin-bottom: 8px;
+        }
+        .count-screen > p { font-size: 15px; color: var(--muted); margin-bottom: 40px; }
+        .count-btns { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+        .count-btn {
+            width: 148px; height: 148px; border-radius: 18px;
+            border: 2px solid var(--soft); background: var(--card);
+            cursor: pointer; transition: .2s; font-family: inherit;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px;
+        }
+        .count-btn:hover {
+            border-color: var(--accent); background: #fff8f5;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(196,115,90,.2);
+        }
+        .count-btn .num { font-size: 42px; font-weight: 900; color: var(--accent); line-height: 1; }
+        .count-btn .lbl { font-size: 14px; color: var(--muted); }
+
+        /* ── 结果面板 ── */
+        #resultPanel {
+            font-size: 11.5px; color: var(--text); line-height: 2;
+            max-width: 130px; margin-top: 2px;
+        }
+
+        /* ── 人数模式标签 ── */
+        #modeTag {
+            font-size: 11px; color: var(--accent); background: var(--soft);
+            padding: 2px 9px; border-radius: 12px;
+            margin-top: 6px; display: inline-block;
         }
 
         /* ── 情绪卡标签 ── */
@@ -318,6 +374,23 @@
 </head>
 <body>
 
+    <!-- 人数选择屏 -->
+    <div id="countScreen" class="count-screen">
+        <h1>情绪特工队</h1>
+        <p>玩家1选情绪，其他人来猜——选择游戏人数</p>
+        <div class="count-btns">
+            <button class="count-btn" onclick="startWithCount(2)">
+                <span class="num">2</span><span class="lbl">2人游戏</span>
+            </button>
+            <button class="count-btn" onclick="startWithCount(3)">
+                <span class="num">3</span><span class="lbl">3人游戏</span>
+            </button>
+            <button class="count-btn" onclick="startWithCount(4)">
+                <span class="num">4</span><span class="lbl">4人游戏</span>
+            </button>
+        </div>
+    </div>
+
     <!-- 题目横幅 -->
     <div id="questionBar" class="question-bar">
         <div class="qbar-header">
@@ -335,6 +408,7 @@
         <div id="gameTitleArea">
             <h1>情绪特工队</h1>
             <p>连接心灵的情绪共鸣</p>
+            <span id="modeTag" class="hidden"></span>
         </div>
 
         <!-- 卡牌盘面 -->
@@ -356,6 +430,8 @@
             <button id="exitSingleBrushBtn" class="btn btn-warning hidden">完成单刷</button>
             <div class="divider"></div>
             <button id="drawQBtn"         class="btn btn-outline" onclick="drawQuestion()">换一道题</button>
+            <button class="btn btn-outline" onclick="changeCount()">换人数</button>
+            <div id="resultPanel" class="hidden"></div>
             <p class="ctrl-hint">先抽一道场景题，大家读完后再选情绪。也可直接游戏。</p>
         </div>
 
@@ -507,9 +583,12 @@
         };
 
         let gameState = {
-            phase: 'idle',
+            phase: 'idle',           // idle | playerA | playerGuess | finished
+            totalPlayers: 2,
+            currentGuesserIdx: 0,    // 0=player2, 1=player3, 2=player4
             playerASelection: null,
-            playerBSelection: null,
+            currentGuessSelection: null,
+            playerGuesses: [],
             isSingleBrushMode: false,
             currentCards: [],
             round: 1
@@ -524,6 +603,29 @@
         const statusToast      = document.getElementById('statusToast');
         const roundDisplay     = document.getElementById('roundDisplay');
         const centerStatus     = document.getElementById('centerStatus');
+
+        function startWithCount(n) {
+            gameState.totalPlayers = n;
+            document.getElementById('countScreen').style.display = 'none';
+            const tag = document.getElementById('modeTag');
+            tag.textContent = n + ' 人模式';
+            tag.classList.remove('hidden');
+            startGame();
+        }
+
+        function changeCount() {
+            gameState.phase = 'idle';
+            document.getElementById('countScreen').style.display = 'flex';
+            document.getElementById('modeTag').classList.add('hidden');
+            const panel = document.getElementById('resultPanel');
+            panel.classList.add('hidden');
+            panel.innerHTML = '';
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected', 'revealed'));
+            startBtn.classList.remove('hidden');
+            startBtn.innerText = '开始游戏';
+            confirmBtn.classList.add('hidden');
+            centerStatus.innerText = 'Waiting…';
+        }
 
         function init() {
             generateCardSet();
@@ -584,11 +686,11 @@
                 showToast(`已更换：${newWord.word}`);
                 return;
             }
-            if (gameState.phase === 'playerA' || gameState.phase === 'playerB') {
+            if (gameState.phase === 'playerA' || gameState.phase === 'playerGuess') {
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
                 cardElement.classList.add('selected');
                 if (gameState.phase === 'playerA') gameState.playerASelection = index;
-                else gameState.playerBSelection = index;
+                else gameState.currentGuessSelection = index;
                 confirmBtn.classList.remove('hidden');
             }
         }
@@ -596,40 +698,77 @@
         function startGame() {
             gameState.phase = 'playerA';
             gameState.playerASelection = null;
-            gameState.playerBSelection = null;
+            gameState.currentGuessSelection = null;
+            gameState.playerGuesses = [];
+            gameState.currentGuesserIdx = 0;
+            const panel = document.getElementById('resultPanel');
+            panel.classList.add('hidden');
+            panel.innerHTML = '';
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected', 'revealed'));
+            generateCardSet();
+            renderCards();
             startBtn.classList.add('hidden');
-            centerStatus.innerText = 'PLAYER A';
-            showToast('请玩家 A 选择一个当下的情绪');
+            centerStatus.innerText = 'PLAYER 1';
+            showToast('玩家1：请选择一个当下的情绪', 4000);
         }
 
         function handleConfirm() {
             if (gameState.phase === 'playerA') {
-                gameState.phase = 'playerB';
+                gameState.phase = 'playerGuess';
+                gameState.currentGuesserIdx = 0;
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
                 confirmBtn.classList.add('hidden');
-                centerStatus.innerText = 'PLAYER B';
-                showToast('玩家 A 选择完毕，请玩家 B 猜测');
-            } else if (gameState.phase === 'playerB') {
-                checkResult();
+                centerStatus.innerText = 'PLAYER 2';
+                showToast('玩家1已选好，请玩家2猜猜是哪个情绪', 4000);
+            } else if (gameState.phase === 'playerGuess') {
+                gameState.playerGuesses.push(gameState.currentGuessSelection);
+                gameState.currentGuessSelection = null;
+                gameState.currentGuesserIdx++;
+                if (gameState.currentGuesserIdx >= gameState.totalPlayers - 1) {
+                    checkResult();
+                } else {
+                    const next = gameState.currentGuesserIdx + 2;
+                    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                    confirmBtn.classList.add('hidden');
+                    centerStatus.innerText = `PLAYER ${next}`;
+                    showToast(`玩家${next - 1}已猜完，请玩家${next}猜猜是哪个情绪`, 4000);
+                }
             }
         }
 
         function checkResult() {
-            const isMatch = gameState.playerASelection === gameState.playerBSelection;
             gameState.phase = 'finished';
             confirmBtn.classList.add('hidden');
             startBtn.classList.remove('hidden');
             startBtn.innerText = '再来一局';
             centerStatus.innerText = 'ROUND END';
-            if (isMatch) {
-                const word = gameState.currentCards[gameState.playerASelection].word;
-                showToast(`✨ 同感成功！你们都感受到了"${word}"`, 5000);
-                createConfetti();
-            } else {
-                const wordA = gameState.currentCards[gameState.playerASelection].word;
-                const wordB = gameState.currentCards[gameState.playerBSelection].word;
-                showToast(`未命中。A 是"${wordA}"，B 猜是"${wordB}"`, 5000);
-            }
+
+            // 高亮玩家1选的牌
+            document.querySelectorAll('.card').forEach((card, i) => {
+                card.classList.remove('selected');
+                if (i === gameState.playerASelection) card.classList.add('revealed');
+            });
+
+            const wordA = gameState.currentCards[gameState.playerASelection].word;
+            let allMatch = true;
+            const lines = [`玩家1选了：「${wordA}」`];
+            gameState.playerGuesses.forEach((guessIdx, i) => {
+                const pNum = i + 2;
+                const hit  = guessIdx === gameState.playerASelection;
+                if (!hit) allMatch = false;
+                lines.push(hit
+                    ? `✅ 玩家${pNum}：猜对了！`
+                    : `🤍 玩家${pNum}：没猜中（选了「${gameState.currentCards[guessIdx].word}」）`
+                );
+            });
+
+            const panel = document.getElementById('resultPanel');
+            panel.innerHTML = lines.join('<br>');
+            panel.classList.remove('hidden');
+
+            showToast(allMatch ? '✨ 心灵同感！所有人都猜对了！' : `答案揭晓：玩家1选了「${wordA}」`, 4000);
+            if (allMatch) createConfetti();
+
             gameState.round++;
             roundDisplay.innerText = gameState.round.toString().padStart(2, '0');
         }
