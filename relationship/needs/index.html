@@ -129,7 +129,9 @@
       margin-bottom:8px; min-height:36px;
       display:flex; align-items:center; justify-content:center;
     }
-    .need-hearts { font-size:16px; min-height:20px; letter-spacing:1px; }
+    .need-hearts-row {
+      display:flex; align-items:center; justify-content:center; gap:6px; min-height:28px;
+    }
     .refresh-btn {
       position:absolute; top:5px; right:5px; width:20px; height:20px; border-radius:50%;
       background:rgba(154,128,112,.15); border:none; cursor:pointer;
@@ -138,12 +140,14 @@
       font-family:inherit;
     }
     .refresh-btn:hover { background:var(--soft); color:var(--accent); }
-    .remove-btn {
-      position:absolute; bottom:4px; right:4px; font-size:10px; color:var(--muted);
-      background:none; border:none; cursor:pointer; padding:2px 6px; border-radius:6px;
-      transition:.15s; font-family:inherit;
+    .remove-heart {
+      width:26px; height:26px; border-radius:50%; flex-shrink:0;
+      background:rgba(154,128,112,.18); border:none; cursor:pointer;
+      font-size:15px; color:var(--muted);
+      display:flex; align-items:center; justify-content:center;
+      transition:.15s; font-family:inherit; padding:0; line-height:1;
     }
-    .remove-btn:hover { color:var(--accent); }
+    .remove-heart:hover { background:var(--soft); color:var(--accent); }
 
     .handoff-wrap {
       min-height:calc(100vh - 88px); display:flex; flex-direction:column;
@@ -234,6 +238,7 @@
   <div class="scenario-card">
     <p class="scenario-text" id="scenarioText"></p>
   </div>
+  <button class="btn btn-ghost" style="margin-bottom:12px" onclick="changeScenario()">↻ 换一个场景</button>
   <button class="btn btn-primary" onclick="startBetA()">A 先来押注</button>
 </div>
 
@@ -380,6 +385,15 @@ function showScenario() {
   showScreen('scenarioScreen');
 }
 
+function changeScenario() {
+  const usedTexts = new Set(selectedScenarios.map(s => s.text));
+  const available = scenarios.filter(s => !usedTexts.has(s.text));
+  if (!available.length) return;
+  const pick = available[Math.floor(Math.random() * available.length)];
+  selectedScenarios[currentRound] = pick;
+  showScenario();
+}
+
 function startBetA() {
   isPhaseA = true;
   heartA = {};
@@ -428,21 +442,19 @@ function renderBet() {
     const card  = document.createElement('div');
     card.className = 'need-card' + (count > 0 ? ' has-hearts' : '');
 
-    const heartsHtml = count > 0
-      ? `<span style="color:${color}">${'❤'.repeat(count)}</span>`
-      : '';
-
     card.innerHTML =
       `<button class="refresh-btn" onclick="refreshOne(event,${idx})">↻</button>
        <div class="need-name">${need}</div>
-       <div class="need-hearts">${heartsHtml}</div>`;
+       <div class="need-hearts-row">
+         ${count > 0 ? `<span style="color:${color};font-size:16px;letter-spacing:2px">${'❤'.repeat(count)}</span>` : ''}
+         ${count > 0 ? '<button class="remove-heart">−</button>' : ''}
+       </div>`;
 
     if (count > 0) {
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-btn';
-      removeBtn.textContent = '−1';
-      removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeHeart(e, need); });
-      card.appendChild(removeBtn);
+      card.querySelector('.remove-heart').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeHeart(e, need);
+      });
     }
 
     card.addEventListener('click', () => addHeart(need));
@@ -453,22 +465,11 @@ function renderBet() {
 }
 
 function addHeart(needName) {
+  const left = isPhaseA ? heartsLeftA : heartsLeftB;
+  if (left <= 0) return; // 没有剩余心：先点减号释放，再来加
   const hearts = isPhaseA ? heartA : heartB;
-  const left   = isPhaseA ? heartsLeftA : heartsLeftB;
-
-  if (left > 0) {
-    // 还有心可押，直接加
-    hearts[needName] = (hearts[needName] || 0) + 1;
-    if (isPhaseA) heartsLeftA--; else heartsLeftB--;
-  } else if (!hearts[needName]) {
-    // 没有剩余心，点了一张空卡 → 从心最多的卡转移1颗过来
-    const donor = Object.keys(hearts).sort((a,b) => hearts[b]-hearts[a])[0];
-    if (!donor) return;
-    hearts[donor]--;
-    if (hearts[donor] === 0) delete hearts[donor];
-    hearts[needName] = 1;
-    // heartsLeft 不变（净转移，数量不变）
-  }
+  hearts[needName] = (hearts[needName] || 0) + 1;
+  if (isPhaseA) heartsLeftA--; else heartsLeftB--;
   renderBet();
 }
 
