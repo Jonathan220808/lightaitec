@@ -38,8 +38,7 @@
     .header {
       text-align: center;
       margin-bottom: 72px;
-      opacity: 0;
-      animation: up .9s var(--ease) 0s forwards;
+      animation: up .9s var(--ease) 0s both;
     }
     .header-label {
       font-size: 11px;
@@ -80,16 +79,13 @@
       overflow: hidden;
       text-decoration: none;
       color: inherit;
-      opacity: 0;
       transition: transform .32s var(--ease), box-shadow .32s var(--ease);
       box-shadow: 0 2px 16px rgba(0,0,0,.06);
     }
-    a.game-card:nth-child(1) { animation: up .72s var(--ease) .10s forwards; }
-    a.game-card:nth-child(2) { animation: up .72s var(--ease) .18s forwards; }
-    a.game-card:nth-child(3) { animation: up .72s var(--ease) .32s forwards; }
-    a.game-card:nth-child(4) { animation: up .72s var(--ease) .42s forwards; }
-    a.game-card:nth-child(5) { animation: up .72s var(--ease) .52s forwards; }
-    a.game-card:nth-child(6) { animation: up .72s var(--ease) .62s forwards; }
+    a.game-card:nth-child(1) { animation: up .72s var(--ease) .10s both; }
+    a.game-card:nth-child(2) { animation: up .72s var(--ease) .18s both; }
+    a.game-card:nth-child(3) { animation: up .72s var(--ease) .28s both; }
+    a.game-card:nth-child(4) { animation: up .72s var(--ease) .38s both; }
     a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
     a.game-card:active { transform: translateY(-3px); }
 
@@ -316,8 +312,7 @@
       font-size: 11px;
       color: #B4ADA5;
       letter-spacing: .04em;
-      opacity: 0;
-      animation: up .6s var(--ease) .6s forwards;
+      animation: up .6s var(--ease) .5s both;
     }
 
     @keyframes up {
@@ -422,79 +417,7 @@
         </div>
       </a>
 
-      <!-- 04 我们之间几分 -->
-      <a class="game-card" href="./score/">
-        <div class="card-visual v4">
-          <div class="visual-content score-preview">
-            <div class="s-num">?</div>
-            <div class="s-label">你打几分 · 对方猜几分</div>
-          </div>
-        </div>
-        <div class="card-text">
-          <div class="card-meta">
-            <span class="card-num">04</span>
-            <span class="card-tag">2人 · 情侣专属</span>
-          </div>
-          <h2>我们之间几分</h2>
-          <p>双方偷偷打分，再猜对方的分数——揭晓那一刻，才知道有多了解彼此。</p>
-          <span class="card-link">开始游戏 →</span>
-        </div>
-      </a>
-
-      <!-- 05 留到最后 -->
-      <a class="game-card" href="./keep/">
-        <div class="card-visual v5">
-          <div class="visual-content keep-preview">
-            <div class="k-item struck">物质与金钱</div>
-            <div class="k-item struck">外貌与颜值</div>
-            <div class="k-item struck">共同话题</div>
-            <div class="k-item struck">家庭背景</div>
-            <div class="k-item last">情感联结</div>
-          </div>
-        </div>
-        <div class="card-text">
-          <div class="card-meta">
-            <span class="card-num">05</span>
-            <span class="card-tag">2–3人 · 价值观</span>
-          </div>
-          <h2>留到最后</h2>
-          <p>五个选项逐一划掉，留下你认为对方最在意的——答案揭晓时，才看清彼此的重心。</p>
-          <span class="card-link">开始游戏 →</span>
-        </div>
-      </a>
-
-      <!-- 06 小时候的你 -->
-      <a class="game-card" href="./past/">
-        <div class="card-visual v6">
-          <div class="visual-content past-preview">
-            <div class="p-voice">
-              <div class="p-role">孩子说</div>
-              <div class="p-text">我真正的感受</div>
-            </div>
-            <div class="p-divider"></div>
-            <div class="p-voice">
-              <div class="p-role">爸妈猜</div>
-              <div class="p-text">你那时候……</div>
-            </div>
-            <div class="p-divider"></div>
-            <div class="p-voice">
-              <div class="p-role">同时揭晓</div>
-              <div class="p-text">看见相似与不同</div>
-            </div>
-          </div>
-        </div>
-        <div class="card-text">
-          <div class="card-meta">
-            <span class="card-num">06</span>
-            <span class="card-tag">2人 · 亲子专属</span>
-          </div>
-          <h2>小时候的你</h2>
-          <p>孩子说真实感受，爸妈说猜测与自己的童年——三个答案同时揭晓，看见不同也看见相似。</p>
-          <span class="card-link">开始游戏 →</span>
-        </div>
-      </a>
-
-      <!-- 07 需求押注 -->
+      <!-- 04 需求押注 -->
       <a class="game-card" href="./needs/">
         <div class="card-visual v4">
           <div class="visual-content traits">
@@ -506,7 +429,7 @@
         </div>
         <div class="card-text">
           <div class="card-meta">
-            <span class="card-num">07</span>
+            <span class="card-num">04</span>
             <span class="card-tag">2人 · 需求对比</span>
           </div>
           <h2>需求押注</h2>
