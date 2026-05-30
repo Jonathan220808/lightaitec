@@ -213,15 +213,15 @@
   <div class="mechanic-box">
     <div class="mechanic-item">
       <div class="mechanic-num">1</div>
-      <div class="mechanic-text">场景出现，你有 <em>3颗心</em> 可以押</div>
+      <div class="mechanic-text"><em>A</em> 把 3 颗心押在自己最需要的卡上——<em>可以全押一张</em>，也可以分开押</div>
     </div>
     <div class="mechanic-item">
       <div class="mechanic-num">2</div>
-      <div class="mechanic-text">把心押在<em>你最需要的</em>卡上，可以全押一张，也可以分开押</div>
+      <div class="mechanic-text">把手机<em>递给 B</em>，B 来猜 A 最需要什么，用 3 颗心押出来</div>
     </div>
     <div class="mechanic-item">
       <div class="mechanic-num">3</div>
-      <div class="mechanic-text">递给对方，TA 也押好，然后<em>一起揭晓</em>对比</div>
+      <div class="mechanic-text"><em>一起揭晓</em>——看 B 猜对多少，聊聊那些不一样的</div>
     </div>
   </div>
   <button class="btn btn-primary" onclick="startGame()">开始游戏</button>
@@ -251,7 +251,7 @@
     <div class="hearts-display" id="heartsDisplay"></div>
   </div>
   <div class="needs-grid" id="needsGrid"></div>
-  <button class="btn btn-ghost" style="margin-bottom:12px" onclick="refreshAllNeeds()">↻ 换一批需求</button>
+  <button id="refreshAllBtn" class="btn btn-ghost" style="margin-bottom:12px" onclick="refreshAllNeeds()">↻ 换一批需求</button>
   <button class="btn btn-primary btn-disabled" id="confirmBtn" onclick="confirmBet()">确认押注</button>
 </div>
 
@@ -260,7 +260,7 @@
   <div class="handoff-wrap">
     <div class="handoff-icon">🤝</div>
     <h2 class="handoff-title">A 押好了</h2>
-    <p class="handoff-sub">请把手机<strong>递给对方</strong><br>不要让 A 偷看哦</p>
+    <p class="handoff-sub">请把手机<strong>递给 B</strong><br>让 B 猜猜 A 在这个场景下<br>最需要什么</p>
     <button class="btn btn-primary" style="max-width:280px" onclick="startBetB()">B 已准备好</button>
   </div>
 </div>
@@ -268,13 +268,13 @@
 <!-- ⑤ 揭晓屏 -->
 <div id="revealScreen" class="screen">
   <p class="scenario-mini" id="revealScenario"></p>
-  <h2 class="reveal-title">两人的需求</h2>
+  <h2 class="reveal-title">B 猜对了多少？</h2>
   <div class="legend">
     <div class="legend-item">
-      <div class="legend-dot" style="background:var(--pA)"></div><span>A 的心</span>
+      <div class="legend-dot" style="background:var(--pA)"></div><span>A 的需求</span>
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:var(--pB)"></div><span>B 的心</span>
+      <div class="legend-dot" style="background:var(--pB)"></div><span>B 的猜测</span>
     </div>
   </div>
   <div class="reveal-grid" id="revealGrid"></div>
@@ -398,7 +398,7 @@ function startBetA() {
   isPhaseA = true;
   heartA = {};
   heartsLeftA = TOTAL_HEARTS;
-  currentNeeds = [...selectedScenarios[currentRound].defaults];
+  currentNeeds = shuffle([...selectedScenarios[currentRound].defaults]).slice(0, 5);
   renderBet();
   showScreen('betScreen');
 }
@@ -407,7 +407,7 @@ function startBetB() {
   isPhaseA = false;
   heartB = {};
   heartsLeftB = TOTAL_HEARTS;
-  currentNeeds = [...selectedScenarios[currentRound].defaults];
+  currentNeeds = [...needsAfterA]; // B 看 A 选的那 5 张，猜 A 的分布
   renderBet();
   showScreen('betScreen');
 }
@@ -422,7 +422,7 @@ function renderBet() {
 
   document.getElementById('playerTag').innerHTML =
     `<div class="player-dot" style="background:${color}"></div>
-     <span style="color:${color}">${label} 的需求</span>`;
+     <span style="color:${color}">${isPhaseA ? 'A 的需求' : 'B 猜 A 最需要什么'}</span>`;
 
   const hEl = document.getElementById('heartsDisplay');
   hEl.innerHTML = '';
@@ -443,7 +443,7 @@ function renderBet() {
     card.className = 'need-card' + (count > 0 ? ' has-hearts' : '');
 
     card.innerHTML =
-      `<button class="refresh-btn" onclick="refreshOne(event,${idx})">↻</button>
+      `${isPhaseA ? `<button class="refresh-btn" onclick="refreshOne(event,${idx})">↻</button>` : ''}
        <div class="need-name">${need}</div>
        <div class="need-hearts-row">
          ${count > 0 ? `<span style="color:${color};font-size:16px;letter-spacing:2px">${'❤'.repeat(count)}</span>` : ''}
@@ -462,6 +462,8 @@ function renderBet() {
   });
 
   document.getElementById('confirmBtn').classList.toggle('btn-disabled', heartsLeft > 0);
+  const rabEl = document.getElementById('refreshAllBtn');
+  if (rabEl) rabEl.style.display = isPhaseA ? '' : 'none';
 }
 
 function addHeart(needName) {
@@ -502,7 +504,7 @@ function refreshOne(e, idx) {
 function refreshAllNeeds() {
   if (isPhaseA) { heartA = {}; heartsLeftA = TOTAL_HEARTS; }
   else          { heartB = {}; heartsLeftB = TOTAL_HEARTS; }
-  currentNeeds = shuffle(needsPool).slice(0, 6);
+  currentNeeds = shuffle(needsPool).slice(0, 5);
   renderBet();
 }
 
@@ -518,10 +520,8 @@ function confirmBet() {
 function showReveal() {
   document.getElementById('revealScenario').textContent = selectedScenarios[currentRound].text;
 
-  const needsAfterB = [...currentNeeds];
-  const bExtras = needsAfterB.filter(n => (heartB[n] || 0) > 0 && !needsAfterA.includes(n));
-  // 最多展示6张，优先保留有心的卡
-  const displayNeeds = [...needsAfterA, ...bExtras].slice(0, 6);
+  // B 看的就是 A 的那 5 张，直接展示
+  const displayNeeds = [...needsAfterA];
 
   const grid = document.getElementById('revealGrid');
   grid.innerHTML = '';
@@ -554,13 +554,9 @@ function showReveal() {
   const diffs = displayNeeds.filter(n => (heartA[n]||0) !== (heartB[n]||0));
   const promptEl = document.getElementById('revealPrompt');
   if (diffs.length === 0) {
-    promptEl.innerHTML = '<p>你们这轮需求完全一样 ❤<br><strong>聊聊这些对你们为什么都这么重要？</strong></p>';
+    promptEl.innerHTML = '<p>B 完全猜中了 ❤<br><strong>你真的挺懂 A 的～</strong></p>';
   } else {
-    const biggest = diffs.reduce((max, n) =>
-      Math.abs((heartA[n]||0)-(heartB[n]||0)) > Math.abs((heartA[max]||0)-(heartB[max]||0)) ? n : max
-    , diffs[0]);
-    promptEl.innerHTML =
-      `<p>你们在 <strong>「${biggest}」</strong> 上差别最大。<br>聊聊这个时刻你们各自需要的是什么？</p>`;
+    promptEl.innerHTML = '<p>看看哪里有差别<br><strong>聊聊那里的感受吧 ✨</strong></p>';
   }
 
   document.getElementById('nextBtn').textContent =
