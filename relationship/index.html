@@ -8,16 +8,18 @@
   <style>
     :root {
       --bg:    #E8E3DB;
-      --card:  #FFFFFF;
+      --card:  #FFFDF9;
       --text:  #1A1108;
       --muted: #8A8078;
       --tag:   #DEDAD3;
       --ease:  cubic-bezier(0.16, 1, 0.3, 1);
 
-      /* 每个游戏的专属色 */
-      --c1: #5E8CB5;   /* 心灵奇旅 · 石板蓝   */
-      --c2: #B46880;   /* 情绪特工队 · 玫瑰粉 */
+      --c1: #5E8CB5;
+      --c2: #B46880;
       --c3: #5D8F72;   /* 翻出真心 · 鼠尾草绿 */
+      --c4: #B8864E;   /* 需求押注 · 暖金     */
+      --c5: #9B7BB5;
+      --c6: #6B8FB5;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,185 +28,314 @@
       font-family: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
       background: var(--bg);
       min-height: 100vh;
-      padding: 72px 24px 96px;
+      padding: 88px 24px 100px;
       color: var(--text);
     }
 
-    .container { max-width: 720px; margin: 0 auto; }
+    .container { max-width: 1080px; margin: 0 auto; }
 
-    /* ── 标题区 ── */
+    /* ── Header ── */
     .header {
-      margin-bottom: 52px;
+      text-align: center;
+      margin-bottom: 72px;
       opacity: 0;
       animation: up .9s var(--ease) 0s forwards;
     }
     .header-label {
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: .16em;
+      letter-spacing: .24em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 14px;
+      margin-bottom: 20px;
     }
     .header h1 {
       font-family: 'Noto Serif SC', serif;
-      font-size: 46px;
+      font-size: 80px;
       font-weight: 900;
-      line-height: 1.18;
-      letter-spacing: -.01em;
+      line-height: 1.08;
+      letter-spacing: -.02em;
       color: var(--text);
+      margin-bottom: 20px;
     }
-    .header h1 span {
-      display: block;
-      font-weight: 400;
+    .header p {
+      font-size: 16px;
       color: var(--muted);
-      font-size: 40px;
+      letter-spacing: .04em;
     }
 
-    /* ── 游戏卡片 ── */
+    /* ── Grid ── */
     .games {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
+    /* ── Card ── */
     a.game-card {
       display: flex;
-      align-items: stretch;
+      flex-direction: column;
       background: var(--card);
-      border-radius: 24px;
+      border-radius: 18px;
       overflow: hidden;
       text-decoration: none;
       color: inherit;
-      min-height: 210px;
-      box-shadow: 0 2px 20px rgba(0,0,0,.07);
       opacity: 0;
-      transition: transform .28s var(--ease), box-shadow .28s var(--ease);
+      transition: transform .32s var(--ease), box-shadow .32s var(--ease);
+      box-shadow: 0 2px 16px rgba(0,0,0,.06);
     }
-    a.game-card:nth-child(1) { animation: up .72s var(--ease) .12s forwards; }
-    a.game-card:nth-child(2) { animation: up .72s var(--ease) .22s forwards; }
+    a.game-card:nth-child(1) { animation: up .72s var(--ease) .10s forwards; }
+    a.game-card:nth-child(2) { animation: up .72s var(--ease) .18s forwards; }
     a.game-card:nth-child(3) { animation: up .72s var(--ease) .32s forwards; }
-    a.game-card:hover  { transform: translateY(-5px); box-shadow: 0 18px 48px rgba(0,0,0,.12); }
-    a.game-card:active { transform: translateY(-2px); }
+    a.game-card:nth-child(4) { animation: up .72s var(--ease) .42s forwards; }
+    a.game-card:nth-child(5) { animation: up .72s var(--ease) .52s forwards; }
+    a.game-card:nth-child(6) { animation: up .72s var(--ease) .62s forwards; }
+    a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
+    a.game-card:active { transform: translateY(-3px); }
 
-    /* ── 左侧文字 ── */
-    .card-text {
-      flex: 1;
-      padding: 40px 38px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .card-num {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 14px;
-    }
-    .card-text h2 {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: .01em;
-      color: var(--text);
-      margin-bottom: 10px;
-    }
-    .card-text p {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.85;
-      margin-bottom: 22px;
-    }
-    .card-tag {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .06em;
-      padding: 5px 14px;
-      border-radius: 100px;
-      background: var(--tag);
-      color: var(--muted);
-      align-self: flex-start;
-    }
-
-    /* ── 右侧色块 ── */
+    /* ── Visual top ── */
     .card-visual {
-      width: 270px;
-      flex-shrink: 0;
+      height: 216px;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      padding: 28px 24px;
     }
     .card-visual.v1 { background: var(--c1); }
     .card-visual.v2 { background: var(--c2); }
     .card-visual.v3 { background: var(--c3); }
+    .card-visual.v4 { background: var(--c4); }
+    .card-visual.v5 { background: var(--c5); }
+    .card-visual.v6 { background: var(--c6); }
 
-    /* 背景装饰圆 */
     .card-visual::before {
       content: '';
       position: absolute;
-      width: 260px;
-      height: 260px;
+      width: 280px; height: 280px;
       border-radius: 50%;
-      border: 40px solid rgba(255,255,255,.08);
-      top: 50%;
-      left: 60%;
-      transform: translate(-50%, -50%);
+      border: 48px solid rgba(255,255,255,.07);
+      top: -70px; right: -70px;
     }
     .card-visual::after {
       content: '';
       position: absolute;
-      width: 140px;
-      height: 140px;
+      width: 150px; height: 150px;
       border-radius: 50%;
-      border: 24px solid rgba(255,255,255,.06);
-      bottom: -30px;
-      left: -30px;
+      border: 28px solid rgba(255,255,255,.05);
+      bottom: -38px; left: -38px;
     }
 
-    .visual-num {
+    .visual-content { position: relative; z-index: 1; width: 100%; }
+
+    /* ① quote — 心灵奇旅 */
+    .visual-content.quote { text-align: center; }
+    .visual-content.quote .q-mark {
       font-family: 'Noto Serif SC', serif;
-      font-size: 128px;
+      font-size: 52px;
       font-weight: 900;
+      color: rgba(255,255,255,.28);
       line-height: 1;
-      letter-spacing: -.04em;
-      color: rgba(255,255,255,.22);
-      position: relative;
-      z-index: 1;
-      user-select: none;
+      margin-bottom: 6px;
+    }
+    .visual-content.quote .q-text {
+      font-size: 13px;
+      color: rgba(255,255,255,.82);
+      line-height: 1.9;
+      letter-spacing: .03em;
     }
 
-    /* ── 底部注释 ── */
+    /* ② emotions — 情绪特工队 */
+    .visual-content.emotions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .e-row { display: flex; gap: 12px; align-items: baseline; }
+    .e-word {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+      letter-spacing: .06em;
+    }
+    .e-word.lg { font-size: 24px; }
+    .e-word.md { font-size: 17px; opacity: .72; }
+    .e-word.sm { font-size: 12px; opacity: .48; }
+
+    /* ③ traits — 翻出真心 */
+    .visual-content.traits {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+    }
+    .t-item {
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      background: rgba(255,255,255,.13);
+      padding: 6px 16px;
+      border-radius: 100px;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    /* ④ score — 我们之间几分 */
+    .visual-content.score-preview { text-align: center; }
+    .s-num {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(255,255,255,.22);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .s-label {
+      font-size: 12px;
+      color: rgba(255,255,255,.6);
+      letter-spacing: .1em;
+    }
+
+    /* ⑤ elimination — 留到最后 */
+    .visual-content.keep-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      padding-left: 8px;
+    }
+    .k-item {
+      font-size: 13px;
+      color: rgba(255,255,255,.75);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: .02em;
+    }
+    .k-item::before { content: '—'; font-size: 10px; color: rgba(255,255,255,.3); }
+    .k-item.struck {
+      color: rgba(255,255,255,.28);
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,.3);
+    }
+    .k-item.last {
+      color: #fff;
+      font-weight: 700;
+      font-family: 'Noto Serif SC', serif;
+    }
+    .k-item.last::before { content: '♥'; color: rgba(255,255,255,.7); }
+
+    /* ⑥ voices — 小时候的你 */
+    .visual-content.past-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .p-voice { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .p-role {
+      font-size: 10px;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .p-text {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Noto Serif SC', serif;
+      color: rgba(255,255,255,.88);
+      letter-spacing: .02em;
+    }
+    .p-divider {
+      width: 32px; height: 1px;
+      background: rgba(255,255,255,.18);
+    }
+
+    /* ── Text bottom ── */
+    .card-text {
+      padding: 24px 26px 28px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--muted);
+    }
+    .card-tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: var(--tag);
+      color: var(--muted);
+    }
+    .card-text h2 {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: .01em;
+      color: var(--text);
+      margin-bottom: 9px;
+    }
+    .card-text p {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.85;
+      flex: 1;
+      margin-bottom: 18px;
+    }
+    .card-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: .04em;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      text-decoration-thickness: 1.5px;
+      align-self: flex-start;
+      opacity: .6;
+      transition: opacity .2s;
+    }
+    a.game-card:hover .card-link { opacity: 1; }
+
+    /* ── Footer ── */
     .footer {
-      margin-top: 56px;
+      margin-top: 72px;
       text-align: center;
       font-size: 11px;
       color: #B4ADA5;
-      letter-spacing: .03em;
+      letter-spacing: .04em;
       opacity: 0;
-      animation: up .6s var(--ease) .5s forwards;
+      animation: up .6s var(--ease) .6s forwards;
     }
 
     @keyframes up {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0);    }
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── 移动端 ── */
-    @media (max-width: 580px) {
-      body { padding: 52px 16px 80px; }
-      .header h1      { font-size: 36px; }
-      .header h1 span { font-size: 30px; }
-      a.game-card     { flex-direction: column; min-height: auto; }
-      .card-visual    { width: 100%; height: 150px; }
-      .visual-num     { font-size: 88px; }
-      .card-text      { padding: 28px 24px; }
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .games { grid-template-columns: repeat(2, 1fr); }
+      .header h1 { font-size: 60px; }
     }
-
+    @media (max-width: 560px) {
+      body { padding: 60px 16px 80px; }
+      .header h1 { font-size: 44px; }
+      .games { grid-template-columns: 1fr; }
+      .card-visual { height: 178px; }
+    }
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; opacity: 1 !important; }
     }
@@ -213,46 +344,174 @@
 <body>
   <div class="container">
 
-    <div class="header">
+    <header class="header">
       <p class="header-label">互动小游戏</p>
-      <h1>关系游戏<span>让彼此更了解。</span></h1>
-    </div>
+      <h1>关系游戏</h1>
+      <p>让彼此更了解彼此。</p>
+    </header>
 
     <div class="games">
 
+      <!-- 01 心灵奇旅 -->
       <a class="game-card" href="./chat/">
+        <div class="card-visual v1">
+          <div class="visual-content quote">
+            <div class="q-mark">"</div>
+            <div class="q-text">你最近有没有哪一个瞬间，<br>突然觉得今天还挺幸福的？</div>
+          </div>
+        </div>
         <div class="card-text">
-          <span class="card-num">01</span>
+          <div class="card-meta">
+            <span class="card-num">01</span>
+            <span class="card-tag">1–2人 · 话题抽取</span>
+          </div>
           <h2>心灵奇旅</h2>
           <p>按深度抽取话题，从轻松到深入，让对话自然流动。</p>
-          <span class="card-tag">1–2人 · 话题抽取</span>
-        </div>
-        <div class="card-visual v1">
-          <span class="visual-num">01</span>
+          <span class="card-link">开始游戏 →</span>
         </div>
       </a>
 
+      <!-- 02 情绪特工队 -->
       <a class="game-card" href="./feeling/">
+        <div class="card-visual v2">
+          <div class="visual-content emotions">
+            <div class="e-row">
+              <span class="e-word lg">喜悦</span>
+              <span class="e-word md">宁静</span>
+            </div>
+            <div class="e-row">
+              <span class="e-word sm">感激</span>
+              <span class="e-word lg">迷茫</span>
+              <span class="e-word sm">焦虑</span>
+            </div>
+            <div class="e-row">
+              <span class="e-word md">孤独</span>
+              <span class="e-word lg">恐惧</span>
+            </div>
+          </div>
+        </div>
         <div class="card-text">
-          <span class="card-num">02</span>
+          <div class="card-meta">
+            <span class="card-num">02</span>
+            <span class="card-tag">2人 · 情绪共鸣</span>
+          </div>
           <h2>情绪特工队</h2>
           <p>玩家 A 选一个情绪，玩家 B 猜——看你们是否心有灵犀。</p>
-          <span class="card-tag">2人 · 情绪共鸣</span>
-        </div>
-        <div class="card-visual v2">
-          <span class="visual-num">02</span>
+          <span class="card-link">开始游戏 →</span>
         </div>
       </a>
 
+      <!-- 03 翻出真心 -->
       <a class="game-card" href="./flip/">
+        <div class="card-visual v3">
+          <div class="visual-content traits">
+            <span class="t-item">容易心软善良</span>
+            <span class="t-item">习惯性迁就别人</span>
+            <span class="t-item">待人真诚心软</span>
+            <span class="t-item">容易情绪敏感</span>
+          </div>
+        </div>
         <div class="card-text">
-          <span class="card-num">03</span>
+          <div class="card-meta">
+            <span class="card-num">03</span>
+            <span class="card-tag">2–4人 · 自我探索</span>
+          </div>
           <h2>翻出真心</h2>
           <p>每人选 2 张卡牌，看看彼此内心深处的共同点。</p>
-          <span class="card-tag">2–4人 · 自我探索</span>
+          <span class="card-link">开始游戏 →</span>
         </div>
-        <div class="card-visual v3">
-          <span class="visual-num">03</span>
+      </a>
+
+      <!-- 04 我们之间几分 -->
+      <a class="game-card" href="./score/">
+        <div class="card-visual v4">
+          <div class="visual-content score-preview">
+            <div class="s-num">?</div>
+            <div class="s-label">你打几分 · 对方猜几分</div>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">04</span>
+            <span class="card-tag">2人 · 情侣专属</span>
+          </div>
+          <h2>我们之间几分</h2>
+          <p>双方偷偷打分，再猜对方的分数——揭晓那一刻，才知道有多了解彼此。</p>
+          <span class="card-link">开始游戏 →</span>
+        </div>
+      </a>
+
+      <!-- 05 留到最后 -->
+      <a class="game-card" href="./keep/">
+        <div class="card-visual v5">
+          <div class="visual-content keep-preview">
+            <div class="k-item struck">物质与金钱</div>
+            <div class="k-item struck">外貌与颜值</div>
+            <div class="k-item struck">共同话题</div>
+            <div class="k-item struck">家庭背景</div>
+            <div class="k-item last">情感联结</div>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">05</span>
+            <span class="card-tag">2–3人 · 价值观</span>
+          </div>
+          <h2>留到最后</h2>
+          <p>五个选项逐一划掉，留下你认为对方最在意的——答案揭晓时，才看清彼此的重心。</p>
+          <span class="card-link">开始游戏 →</span>
+        </div>
+      </a>
+
+      <!-- 06 小时候的你 -->
+      <a class="game-card" href="./past/">
+        <div class="card-visual v6">
+          <div class="visual-content past-preview">
+            <div class="p-voice">
+              <div class="p-role">孩子说</div>
+              <div class="p-text">我真正的感受</div>
+            </div>
+            <div class="p-divider"></div>
+            <div class="p-voice">
+              <div class="p-role">爸妈猜</div>
+              <div class="p-text">你那时候……</div>
+            </div>
+            <div class="p-divider"></div>
+            <div class="p-voice">
+              <div class="p-role">同时揭晓</div>
+              <div class="p-text">看见相似与不同</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">06</span>
+            <span class="card-tag">2人 · 亲子专属</span>
+          </div>
+          <h2>小时候的你</h2>
+          <p>孩子说真实感受，爸妈说猜测与自己的童年——三个答案同时揭晓，看见不同也看见相似。</p>
+          <span class="card-link">开始游戏 →</span>
+        </div>
+      </a>
+
+      <!-- 07 需求押注 -->
+      <a class="game-card" href="./needs/">
+        <div class="card-visual v4">
+          <div class="visual-content traits">
+            <span class="t-item">被听见</span>
+            <span class="t-item">被接住情绪</span>
+            <span class="t-item">自由空间</span>
+            <span class="t-item">被先哄</span>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">07</span>
+            <span class="card-tag">2人 · 需求对比</span>
+          </div>
+          <h2>需求押注</h2>
+          <p>场景出现，各自把心押在最需要的卡上——揭晓那一刻，看见彼此真正需要什么。</p>
+          <span class="card-link">开始游戏 →</span>
         </div>
       </a>
 
