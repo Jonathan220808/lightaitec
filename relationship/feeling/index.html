@@ -439,11 +439,139 @@
     }
     .back-link:hover { color: var(--accent); }
 
-    @media (max-width: 800px) {
-      .question-bar { padding: 12px 16px; }
-      .cards-orbit { width: 420px; height: 420px; }
-      .card { width: 96px; height: 140px; }
-      .controls { right: 8px; padding: 10px; transform: translateY(-50%) scale(0.85); }
+    /* ───────────────────────────────────────
+       手机端（≤ 639px）完整布局覆盖
+       核心逻辑：
+         桌面 → 圆形轨道（保持原样）
+         手机 → 4列×2行网格 + 纵向流动
+    ─────────────────────────────────────── */
+    @media (max-width: 639px) {
+
+      /* 允许页面在手机上纵向滚动 */
+      body {
+        height: auto;
+        min-height: 100svh;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* 题目横幅：去掉大右内边距 */
+      .question-bar {
+        padding: 12px 16px;
+        max-height: 40vh;
+      }
+
+      /* 游戏区：改为纵向排列 */
+      .game-container {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 14px 14px 28px;
+        gap: 12px;
+        flex: initial;
+        min-height: unset;
+      }
+
+      /* 标题区：脱离绝对定位，进入正常流 */
+      #gameTitleArea {
+        position: static;
+        text-align: center;
+        width: 100%;
+      }
+      #gameTitleArea h1 { font-size: 1.5rem; margin-bottom: 2px; }
+      #gameTitleArea p  { font-size: 12px; }
+      #modeTag { margin-top: 4px; }
+
+      /* 卡牌轨道：4列×2行网格 */
+      .cards-orbit {
+        position: static;
+        width: 100%;
+        height: auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 7px;
+      }
+
+      /* 中心圆 → 横向状态栏，占满4列 */
+      .center-logo {
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 50px;
+        border-radius: 12px;
+        flex-direction: row;
+        gap: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,.14);
+      }
+      .center-label     { display: none; }
+      .center-round-num { font-size: 1.2rem; font-weight: 900; line-height: 1; }
+      .center-status    { margin-top: 0; font-size: 9px; padding: 3px 8px; }
+
+      /* 情绪卡牌：脱离绝对定位，交给网格排列
+         !important 覆盖 JS 写入的内联 left / top */
+      .card {
+        position: static  !important;
+        left: auto        !important;
+        top: auto         !important;
+        width: 100%       !important;
+        height: 76px      !important;
+        padding: 8px 4px  !important;
+        border-radius: 12px;
+        transform: none   !important;
+      }
+      .card:hover    { transform: scale(1.04) !important; z-index: 2; }
+      .card.selected { transform: scale(1.04) translateY(-3px) !important; }
+      .card.revealed { transform: scale(1.06) !important; }
+      .emotion-word  { font-size: 1rem; }
+
+      /* 控制面板：横向按钮组 */
+      .controls {
+        position: static;
+        right: auto;
+        top: auto;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        padding: 12px 10px;
+        border-radius: 16px;
+        gap: 6px;
+        min-width: unset;
+      }
+      .btn        { padding: 8px 12px; font-size: 12px; }
+      .btn-outline { padding: 7px 10px; font-size: 11px; }
+      .ctrl-hint  { display: none; }
+      .divider    { display: none; }
+      #resultPanel { max-width: 100%; font-size: 12px; text-align: center; }
+
+      /* 状态提示：固定在屏幕底部，不遮挡题目 */
+      .status-toast {
+        position: fixed;
+        top: auto;
+        bottom: 22px;
+        border-radius: 100px;
+        font-size: 14px;
+        padding: 10px 20px;
+        z-index: 150;
+      }
+
+      /* 返回链接：进入正常流 */
+      .back-link {
+        position: static;
+        display: block;
+        text-align: center;
+        font-size: 12px;
+        margin-top: 0;
+      }
+
+      /* 人数选择屏：3个按钮缩小以适应手机宽度 */
+      .count-screen h1      { font-size: 36px; }
+      .count-screen > p     { font-size: 13px; }
+      .count-header         { margin-bottom: 36px; }
+      .count-btn            { width: 100px; }
+      .count-btn .btn-top   { height: 80px; }
+      .count-btn .num       { font-size: 40px; }
+      .count-btn .lbl       { font-size: 12px; padding: 12px 0 14px; }
     }
   </style>
 </head>
