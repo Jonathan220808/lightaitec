@@ -284,7 +284,8 @@ const IMG_DIR = "img/";
 
 let currentKeyword = null;
 let usedKeywords   = new Set();
-let browseIndex    = 0;     // 选图屏当前浏览到第几张（IMAGES 下标）
+let browseOrder    = [];    // 本轮浏览顺序（打乱的 IMAGES 下标）
+let browsePos      = 0;     // 当前浏览到第几张（browseOrder 的指针）
 let selected       = [];    // 已选的 IMAGES 下标（最多5，选中顺序）
 let rankOrder      = [];    // 排序后的 IMAGES 下标（点选顺序＝名次）
 
@@ -292,6 +293,15 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
+}
+
+function shuffle(arr) {
+  const r = [...arr];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
 }
 
 /* ---------- 关键词 ---------- */
@@ -330,7 +340,8 @@ function newKeyword() {
 
 /* ---------- 第一轮：选 5 张 ---------- */
 function startSelect() {
-  browseIndex = 0;
+  browseOrder = shuffle([...Array(IMAGES.length).keys()]);
+  browsePos = 0;
   selected = [];
   renderSelect();
   showScreen('selectScreen');
@@ -342,11 +353,13 @@ function preload(i) {
 function renderSelect() {
   document.getElementById('selKw').textContent = '「' + currentKeyword + '」';
   document.getElementById('selCount').textContent = selected.length;
-  document.getElementById('bigImg').src = IMG_DIR + IMAGES[browseIndex];
-  document.getElementById('imgIndex').textContent = (browseIndex + 1) + ' / ' + IMAGES.length;
-  preload(browseIndex + 1); preload(browseIndex - 1);
+  const cur = browseOrder[browsePos];
+  document.getElementById('bigImg').src = IMG_DIR + IMAGES[cur];
+  document.getElementById('imgIndex').textContent = (browsePos + 1) + ' / ' + browseOrder.length;
+  if (browsePos + 1 < browseOrder.length) preload(browseOrder[browsePos + 1]);
+  if (browsePos - 1 >= 0) preload(browseOrder[browsePos - 1]);
 
-  const isSel = selected.includes(browseIndex);
+  const isSel = selected.includes(cur);
   document.getElementById('imgFrame').classList.toggle('is-selected', isSel);
 
   const pick = document.getElementById('pickBtn');
@@ -373,12 +386,13 @@ function renderSelect() {
   }
   document.getElementById('toRankBtn').classList.toggle('btn-disabled', selected.length !== 5);
 }
-function prevImg() { browseIndex = (browseIndex - 1 + IMAGES.length) % IMAGES.length; renderSelect(); }
-function nextImg() { browseIndex = (browseIndex + 1) % IMAGES.length; renderSelect(); }
+function prevImg() { browsePos = (browsePos - 1 + browseOrder.length) % browseOrder.length; renderSelect(); }
+function nextImg() { browsePos = (browsePos + 1) % browseOrder.length; renderSelect(); }
 function togglePick() {
-  const pos = selected.indexOf(browseIndex);
+  const cur = browseOrder[browsePos];
+  const pos = selected.indexOf(cur);
   if (pos >= 0) selected.splice(pos, 1);
-  else if (selected.length < 5) selected.push(browseIndex);
+  else if (selected.length < 5) selected.push(cur);
   renderSelect();
 }
 function removeFromTray(imgIdx) {
@@ -456,7 +470,7 @@ function renderResult() {
     item.innerHTML =
       `<div class="rrank">${i + 1}</div>
        <div class="rthumb"><img src="${IMG_DIR + IMAGES[imgIdx]}" alt=""></div>
-       <div class="rmeta">${i === 0 ? '最贴近 ❤' : i === rankOrder.length - 1 ? '稍远一点' : ''}</div>`;
+       <div class="rmeta">${i === 0 ? '最贴近 ❤' : ''}</div>`;
     list.appendChild(item);
   });
 }
