@@ -83,6 +83,21 @@
     .kw-note { font-size:12.5px; color:var(--muted); line-height:1.7; background:var(--soft); border-radius:12px; padding:12px 16px; margin-bottom:24px; }
     .kw-note b { color:var(--accent); }
 
+    /* 得分示例盒 */
+    .example-box { background:rgba(142,108,172,.06); border-radius:14px; padding:14px 18px; margin-bottom:16px; border:1px solid rgba(142,108,172,.12); }
+    .ex-title { font-size:11.5px; font-weight:700; color:var(--accent); margin-bottom:10px; letter-spacing:.06em; text-transform:uppercase; }
+    .ex-table { display:grid; grid-template-columns:16px 1fr 1fr 28px; gap:4px 6px; align-items:center; margin-bottom:10px; }
+    .ex-th { font-size:11px; color:var(--muted); font-weight:600; text-align:center; }
+    .ex-rk { font-size:12px; color:var(--muted); text-align:center; line-height:1; }
+    .ex-blk { height:26px; border-radius:6px; }
+    .ex-bd { font-size:11px; font-weight:800; padding:2px 5px; border-radius:5px; color:#fff; text-align:center; height:22px; line-height:18px; }
+    .ex-bd.b2 { background:var(--accent); }
+    .ex-bd.b1 { background:#B6A2CC; }
+    .ex-bd.bx { visibility:hidden; }
+    .ex-leg { font-size:11.5px; color:var(--text); line-height:1.5; margin-bottom:4px; display:flex; align-items:center; gap:7px; }
+    .ex-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+    .ex-total { text-align:right; font-size:13px; font-weight:700; color:var(--accent); margin-top:8px; padding-top:8px; border-top:1px solid rgba(142,108,172,.14); }
+
     /* 计分器（辅助功能，低调小巧） */
     .scorebox { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--soft); border-radius:12px; padding:7px 10px; margin-bottom:14px; flex-wrap:wrap; }
     .sb-label { font-size:12px; color:var(--muted); margin-right:1px; }
@@ -217,6 +232,37 @@
     <div class="srb-title">怎么算分</div>
     <div class="srb-item"><span class="srb-pt p2">+2</span><span><b>完美配对</b>：同一名次，选了同一张图</span></div>
     <div class="srb-item"><span class="srb-pt p1">+1</span><span><b>同图不同位</b>：同一张图都选了，但名次不同</span></div>
+  </div>
+  <!-- 得分示例 -->
+  <div class="example-box">
+    <div class="ex-title">得分示例</div>
+    <div class="ex-table">
+      <div></div><div class="ex-th">你</div><div class="ex-th">对方</div><div></div>
+      <div class="ex-rk">①</div>
+      <div class="ex-blk" style="background:#7B9ED9"></div>
+      <div class="ex-blk" style="background:#7B9ED9"></div>
+      <div class="ex-bd b2">+2</div>
+      <div class="ex-rk">②</div>
+      <div class="ex-blk" style="background:#E8A06D"></div>
+      <div class="ex-blk" style="background:#F0B8C8"></div>
+      <div class="ex-bd bx">+1</div>
+      <div class="ex-rk">③</div>
+      <div class="ex-blk" style="background:#7BBF8A"></div>
+      <div class="ex-blk" style="background:#F0A898"></div>
+      <div class="ex-bd bx">+1</div>
+      <div class="ex-rk">④</div>
+      <div class="ex-blk" style="background:#9B7BB5"></div>
+      <div class="ex-blk" style="background:#7BBF8A"></div>
+      <div class="ex-bd b1">+1</div>
+      <div class="ex-rk">⑤</div>
+      <div class="ex-blk" style="background:#A8C5DA"></div>
+      <div class="ex-blk" style="background:#E8A06D"></div>
+      <div class="ex-bd b1">+1</div>
+    </div>
+    <div class="ex-leg"><span class="ex-dot" style="background:#7B9ED9"></span>蓝 → 你①、对方① 同名次 · <b>完美配对 +2</b></div>
+    <div class="ex-leg"><span class="ex-dot" style="background:#E8A06D"></span>橙 → 你②、对方⑤ 隔了三位 · <b>同图不同位 +1</b></div>
+    <div class="ex-leg"><span class="ex-dot" style="background:#7BBF8A"></span>绿 → 你③、对方④ · <b>同图不同位 +1</b></div>
+    <div class="ex-total">本轮得分 · <span style="font-size:16px">4</span> 分</div>
   </div>
   <p class="kw-note">💡 多人一起玩：大家各自打开游戏，统一用其中<b>一台手机</b>上的关键词就好——谁的词都行，换到大家都喜欢的那个。</p>
   <button class="btn btn-primary" onclick="startGame()">开始</button>
