@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>知己成双</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #FAF6FC;
+      --card:      #FFFFFF;
+      --accent:    #8E6CAC;
+      --accent-dk: #6F5193;
+      --soft:      #EFE6F6;
+      --text:      #1F1430;
+      --muted:     #8B8295;
+      --ease:      cubic-bezier(0.16,1,0.3,1);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body {
+      font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+      background:
+        radial-gradient(ellipse 120% 42% at 50% 0%, rgba(142,108,172,.13) 0%, transparent 64%),
+        var(--bg);
+      min-height:100vh; color:var(--text); overflow-x:hidden;
+    }
+    .screen { display:none; padding:24px 16px 48px; max-width:480px; margin:0 auto; }
+    .screen.active { display:block; }
+
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .back {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:13px; color:var(--muted); text-decoration:none; transition:color .2s;
+      background:none; border:none; cursor:pointer; font-family:inherit; padding:0;
+    }
+    .back:hover { color:var(--accent); }
+    .home-link-tiny {
+      font-size:11px; color:rgba(139,130,149,.55); text-decoration:none;
+      letter-spacing:.04em; transition:color .2s;
+    }
+    .home-link-tiny:hover { color:var(--accent); }
+
+    .btn {
+      width:100%; padding:16px; border-radius:14px; border:none;
+      font-size:16px; font-weight:600; cursor:pointer;
+      transition:.2s var(--ease); letter-spacing:.02em; font-family:inherit;
+    }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-primary:hover { background:var(--accent-dk); }
+    .btn-primary:active { transform:scale(.98); }
+    .btn-ghost {
+      background:transparent; color:var(--muted);
+      border:1.5px solid rgba(139,130,149,.3); font-size:14px; padding:13px;
+    }
+    .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-disabled { opacity:.35; pointer-events:none; }
+    .change-link {
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      font-size:12px; color:rgba(139,130,149,.6); letter-spacing:.03em;
+      padding:12px 0 0; display:block; width:100%; text-align:center; transition:color .2s;
+    }
+    .change-link:hover { color:var(--accent); }
+
+    /* ── 开始屏 ── */
+    .start-label { font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+    .start-title { font-family:'Noto Serif SC',serif; font-size:40px; font-weight:900; line-height:1.18; margin-bottom:12px; }
+    .start-desc { font-size:15px; color:var(--muted); line-height:1.8; margin-bottom:24px; }
+    .mechanic-box { background:var(--card); border-radius:16px; padding:20px 24px; margin-bottom:32px; box-shadow:0 2px 16px rgba(80,50,110,.07); }
+    .mechanic-item { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; }
+    .mechanic-item:last-child { margin-bottom:0; }
+    .mechanic-num { width:24px; height:24px; border-radius:50%; background:var(--soft); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); margin-top:1px; }
+    .mechanic-text { font-size:14px; line-height:1.6; }
+    .mechanic-text em { font-style:normal; color:var(--accent); font-weight:600; }
+
+    /* ── 关键词屏 ── */
+    .kw-hint { font-size:13px; color:var(--muted); letter-spacing:.1em; text-align:center; margin:36px 0 14px; }
+    .kw-card {
+      background:var(--card); border-radius:24px; padding:52px 28px; text-align:center;
+      box-shadow:0 8px 32px rgba(80,50,110,.1); margin-bottom:28px; border:1px solid rgba(142,108,172,.1);
+    }
+    .kw-word { font-family:'Noto Serif SC',serif; font-size:52px; font-weight:900; color:var(--text); letter-spacing:.04em; }
+    .kw-quote { font-size:13px; color:var(--muted); margin-top:14px; line-height:1.7; }
+
+    /* ── 选图屏 ── */
+    .sel-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+    .sel-kw { font-size:15px; font-weight:600; }
+    .sel-kw b { color:var(--accent); }
+    .sel-count { font-size:13px; color:var(--muted); }
+    .sel-count b { color:var(--accent); }
+    .viewer { position:relative; margin-bottom:10px; }
+    .img-frame {
+      background:var(--card); border-radius:18px; overflow:hidden;
+      box-shadow:0 4px 22px rgba(80,50,110,.1);
+      height:50vh; min-height:300px; max-height:440px;
+      display:flex; align-items:center; justify-content:center;
+      border:3px solid transparent; transition:border-color .2s;
+    }
+    .img-frame.is-selected { border-color:var(--accent); }
+    .img-frame img { width:100%; height:100%; object-fit:contain; display:block; }
+    .nav-arrow {
+      position:absolute; top:50%; transform:translateY(-50%);
+      width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
+      background:rgba(31,20,48,.42); color:#fff; font-size:20px; line-height:1;
+      display:flex; align-items:center; justify-content:center; transition:.18s; backdrop-filter:blur(2px);
+    }
+    .nav-arrow:hover { background:rgba(31,20,48,.62); }
+    .nav-arrow:active { transform:translateY(-50%) scale(.92); }
+    .nav-arrow.left { left:10px; }
+    .nav-arrow.right { right:10px; }
+    .img-index { text-align:center; font-size:12px; color:var(--muted); margin-bottom:12px; letter-spacing:.05em; }
+    .pick-btn {
+      width:100%; padding:14px; border-radius:13px; cursor:pointer; font-family:inherit;
+      font-size:15px; font-weight:600; transition:.18s var(--ease); margin-bottom:16px;
+      border:1.5px solid var(--accent); background:var(--card); color:var(--accent);
+    }
+    .pick-btn.picked { background:var(--accent); color:#fff; }
+    .pick-btn.full { opacity:.4; pointer-events:none; border-color:var(--muted); color:var(--muted); }
+    .tray { display:flex; gap:8px; margin-bottom:18px; }
+    .slot {
+      flex:1; aspect-ratio:1; border-radius:10px; overflow:hidden; position:relative;
+      background:var(--soft); border:1.5px dashed rgba(142,108,172,.3);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .slot.filled { border:none; cursor:pointer; }
+    .slot img { width:100%; height:100%; object-fit:cover; }
+    .slot-num { font-size:13px; color:rgba(142,108,172,.5); font-weight:700; }
+    .slot .x {
+      position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
+      background:rgba(31,20,48,.6); color:#fff; font-size:12px; line-height:18px; text-align:center;
+    }
+
+    /* ── 排序屏 ── */
+    .rank-hint { font-size:14px; color:var(--text); line-height:1.6; margin-bottom:4px; }
+    .rank-hint b { color:var(--accent); }
+    .rank-sub { font-size:12.5px; color:var(--muted); margin-bottom:18px; }
+    .rank-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+    .rank-tile {
+      position:relative; aspect-ratio:3/4; border-radius:12px; overflow:hidden; cursor:pointer;
+      box-shadow:0 2px 12px rgba(80,50,110,.08); border:2.5px solid transparent; transition:.16s var(--ease);
+    }
+    .rank-tile:active { transform:scale(.95); }
+    .rank-tile.ranked { border-color:var(--accent); }
+    .rank-tile img { width:100%; height:100%; object-fit:cover; display:block; }
+    .rank-tile .badge {
+      position:absolute; top:6px; left:6px; width:28px; height:28px; border-radius:50%;
+      background:var(--accent); color:#fff; font-family:'Noto Serif SC',serif; font-weight:900;
+      font-size:15px; display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 8px rgba(80,50,110,.35);
+    }
+    .rank-tile .dim { position:absolute; inset:0; background:rgba(255,255,255,.0); transition:.16s; }
+    .rank-tile.ranked .dim { background:rgba(142,108,172,.14); }
+    .rank-btns { display:flex; gap:10px; }
+    .rank-btns .btn { margin:0; }
+
+    /* ── 结果屏 ── */
+    .result-kw { text-align:center; margin-bottom:6px; }
+    .result-kw .label { font-size:12px; color:var(--muted); letter-spacing:.1em; }
+    .result-kw .word { font-family:'Noto Serif SC',serif; font-size:34px; font-weight:900; margin-top:4px; }
+    .result-sub { text-align:center; font-size:13px; color:var(--muted); margin-bottom:24px; }
+    .rlist { display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+    .ritem { display:flex; align-items:center; gap:14px; background:var(--card); border-radius:14px; padding:10px; box-shadow:0 2px 12px rgba(80,50,110,.07); }
+    .rrank { font-family:'Noto Serif SC',serif; font-size:24px; font-weight:900; color:var(--accent); width:30px; text-align:center; flex-shrink:0; }
+    .rthumb { width:72px; height:72px; border-radius:10px; overflow:hidden; flex-shrink:0; }
+    .rthumb img { width:100%; height:100%; object-fit:cover; }
+    .rmeta { font-size:13px; color:var(--muted); }
+    .result-prompt { background:var(--soft); border-radius:16px; padding:18px 22px; text-align:center; margin-bottom:24px; }
+    .result-prompt p { font-size:14.5px; color:var(--text); line-height:1.75; }
+    .btn-row { display:flex; flex-direction:column; gap:10px; }
+    a.btn { text-decoration:none; display:flex; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+
+<!-- ① 开始屏 -->
+<div id="startScreen" class="screen active">
+  <div class="topbar">
+    <a href="../" class="back">← 所有游戏</a>
+  </div>
+  <p class="start-label">互动游戏 · 05</p>
+  <h1 class="start-title">知己<br>成双</h1>
+  <p class="start-desc">一个词，五张图。<br>看看你们是不是想到一块去了。</p>
+  <div class="mechanic-box">
+    <div class="mechanic-item">
+      <div class="mechanic-num">1</div>
+      <div class="mechanic-text">出现一个关键词，比如 <em>「家」</em></div>
+    </div>
+    <div class="mechanic-item">
+      <div class="mechanic-num">2</div>
+      <div class="mechanic-text">从所有图里挑 <em>5 张</em>，再排出和它<em>最贴近</em>的顺序</div>
+    </div>
+    <div class="mechanic-item">
+      <div class="mechanic-num">3</div>
+      <div class="mechanic-text">做完<em>拿给对方看</em>——聊聊你们各自为什么这样选</div>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="startGame()">开始</button>
+</div>
+
+<!-- ② 关键词屏 -->
+<div id="keywordScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goStart()">← 重新开始</button>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
+  <p class="kw-hint">本轮关键词</p>
+  <div class="kw-card">
+    <div class="kw-word" id="kwWord"></div>
+    <div class="kw-quote">凭直觉就好，没有标准答案</div>
+  </div>
+  <button class="btn btn-primary" onclick="startSelect()">开始选图</button>
+  <button class="change-link" onclick="changeKeyword()">↻ 换一个关键词</button>
+</div>
+
+<!-- ③ 选图屏 -->
+<div id="selectScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goKeyword()">← 换关键词</button>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
+  <div class="sel-head">
+    <span class="sel-kw">为 <b id="selKw"></b> 挑 5 张</span>
+    <span class="sel-count">已选 <b id="selCount">0</b> / 5</span>
+  </div>
+  <div class="viewer">
+    <div class="img-frame" id="imgFrame">
+      <img id="bigImg" src="" alt="">
+    </div>
+    <button class="nav-arrow left" onclick="prevImg()">‹</button>
+    <button class="nav-arrow right" onclick="nextImg()">›</button>
+  </div>
+  <div class="img-index" id="imgIndex"></div>
+  <button class="pick-btn" id="pickBtn" onclick="togglePick()">✓ 选这张</button>
+  <div class="tray" id="tray"></div>
+  <button class="btn btn-primary btn-disabled" id="toRankBtn" onclick="goRank()">下一步：排序</button>
+</div>
+
+<!-- ④ 排序屏 -->
+<div id="rankScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="backToSelect()">← 返回重选这 5 张</button>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
+  <p class="rank-hint">按和 <b id="rankKw"></b> 的贴近程度，<b>依次点击</b></p>
+  <p class="rank-sub">最贴近的先点 → 自动标 ①②③④⑤；点已标号的可取消</p>
+  <div class="rank-grid" id="rankGrid"></div>
+  <div class="rank-btns">
+    <button class="btn btn-ghost" onclick="resetRank()">重新排</button>
+    <button class="btn btn-primary btn-disabled" id="finishBtn" onclick="finishRank()">完成</button>
+  </div>
+</div>
+
+<!-- ⑤ 结果屏 -->
+<div id="resultScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="goStart()">← 重新开始</button>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
+  <div class="result-kw">
+    <div class="label">你为「<span id="resKwInline"></span>」排出的顺序</div>
+    <div class="word" id="resKwWord"></div>
+  </div>
+  <div class="result-sub">从最贴近到次贴近</div>
+  <div class="rlist" id="rlist"></div>
+  <div class="result-prompt">
+    <p>把你的排序给对方看看 👀<br>聊聊你们为什么这样选 ✨</p>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="newKeyword()">换个关键词再来</button>
+    <a href="../" class="btn btn-ghost">回首页</a>
+  </div>
+</div>
+
+<script>
+const IMAGES = ["img-01.jpg","img-02.jpg","img-03.jpg","img-04.jpg","img-05.jpg","img-06.jpg","img-07.jpg","img-08.jpg","img-09.jpg","img-10.jpg","img-11.jpg","img-12.jpg","img-13.jpg","img-14.jpg","img-15.jpg","img-16.jpg","img-17.jpg","img-18.jpg","img-19.jpg","img-20.jpg","img-21.jpg","img-22.jpg","img-23.jpg","img-24.jpg","img-25.jpg","img-26.jpg","img-27.jpg","img-28.jpg","img-29.jpg","img-30.jpg"];
+
+const KEYWORDS = [
+  "家","陪伴","温柔","牵挂","默契",
+  "最近的我","安全感","脆弱","想逃离的时刻","重新开始",
+  "自由","理想的周末","让我安心的地方","期待","远方",
+  "治愈","平静","孤独","勇气","思念"
+];
+
+const IMG_DIR = "img/";
+
+let currentKeyword = null;
+let usedKeywords   = new Set();
+let browseIndex    = 0;     // 选图屏当前浏览到第几张（IMAGES 下标）
+let selected       = [];    // 已选的 IMAGES 下标（最多5，选中顺序）
+let rankOrder      = [];    // 排序后的 IMAGES 下标（点选顺序＝名次）
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 关键词 ---------- */
+function pickNewKeyword() {
+  let avail = KEYWORDS.filter(k => !usedKeywords.has(k));
+  if (!avail.length) { usedKeywords.clear(); avail = [...KEYWORDS]; }
+  currentKeyword = avail[Math.floor(Math.random() * avail.length)];
+  usedKeywords.add(currentKeyword);
+}
+function changeKeyword() {
+  usedKeywords.delete(currentKeyword);
+  let avail = KEYWORDS.filter(k => !usedKeywords.has(k));
+  if (!avail.length) { avail = KEYWORDS.filter(k => k !== currentKeyword); if (!avail.length) return; }
+  currentKeyword = avail[Math.floor(Math.random() * avail.length)];
+  usedKeywords.add(currentKeyword);
+  renderKeyword();
+}
+function renderKeyword() {
+  document.getElementById('kwWord').textContent = currentKeyword;
+}
+
+function goStart()  { showScreen('startScreen'); }
+function goKeyword(){ renderKeyword(); showScreen('keywordScreen'); }
+
+function startGame() {
+  usedKeywords.clear();
+  pickNewKeyword();
+  renderKeyword();
+  showScreen('keywordScreen');
+}
+function newKeyword() {
+  pickNewKeyword();
+  renderKeyword();
+  showScreen('keywordScreen');
+}
+
+/* ---------- 第一轮：选 5 张 ---------- */
+function startSelect() {
+  browseIndex = 0;
+  selected = [];
+  renderSelect();
+  showScreen('selectScreen');
+}
+function preload(i) {
+  if (i < 0 || i >= IMAGES.length) return;
+  const im = new Image(); im.src = IMG_DIR + IMAGES[i];
+}
+function renderSelect() {
+  document.getElementById('selKw').textContent = '「' + currentKeyword + '」';
+  document.getElementById('selCount').textContent = selected.length;
+  document.getElementById('bigImg').src = IMG_DIR + IMAGES[browseIndex];
+  document.getElementById('imgIndex').textContent = (browseIndex + 1) + ' / ' + IMAGES.length;
+  preload(browseIndex + 1); preload(browseIndex - 1);
+
+  const isSel = selected.includes(browseIndex);
+  document.getElementById('imgFrame').classList.toggle('is-selected', isSel);
+
+  const pick = document.getElementById('pickBtn');
+  pick.classList.remove('picked', 'full');
+  if (isSel) { pick.textContent = '✓ 已选（点取消）'; pick.classList.add('picked'); }
+  else if (selected.length >= 5) { pick.textContent = '已选满 5 张'; pick.classList.add('full'); }
+  else { pick.textContent = '✓ 选这张'; }
+
+  // 托盘
+  const tray = document.getElementById('tray');
+  tray.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    if (i < selected.length) {
+      slot.classList.add('filled');
+      slot.innerHTML = `<img src="${IMG_DIR + IMAGES[selected[i]]}" alt=""><span class="x">×</span>`;
+      const imgIdx = selected[i];
+      slot.addEventListener('click', () => { removeFromTray(imgIdx); });
+    } else {
+      slot.innerHTML = `<span class="slot-num">${i + 1}</span>`;
+    }
+    tray.appendChild(slot);
+  }
+  document.getElementById('toRankBtn').classList.toggle('btn-disabled', selected.length !== 5);
+}
+function prevImg() { browseIndex = (browseIndex - 1 + IMAGES.length) % IMAGES.length; renderSelect(); }
+function nextImg() { browseIndex = (browseIndex + 1) % IMAGES.length; renderSelect(); }
+function togglePick() {
+  const pos = selected.indexOf(browseIndex);
+  if (pos >= 0) selected.splice(pos, 1);
+  else if (selected.length < 5) selected.push(browseIndex);
+  renderSelect();
+}
+function removeFromTray(imgIdx) {
+  const pos = selected.indexOf(imgIdx);
+  if (pos >= 0) selected.splice(pos, 1);
+  renderSelect();
+}
+
+// 触摸滑动
+(function () {
+  const v = document.getElementById('imgFrame');
+  let x0 = null, y0 = null;
+  v.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  v.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? nextImg() : prevImg(); }
+    x0 = y0 = null;
+  }, {passive:true});
+})();
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('selectScreen').classList.contains('active')) return;
+  if (e.key === 'ArrowLeft') prevImg();
+  if (e.key === 'ArrowRight') nextImg();
+});
+
+/* ---------- 第二轮：排序 ---------- */
+function goRank() {
+  if (selected.length !== 5) return;
+  rankOrder = [];
+  renderRank();
+  showScreen('rankScreen');
+}
+function backToSelect() { renderSelect(); showScreen('selectScreen'); }
+function renderRank() {
+  document.getElementById('rankKw').textContent = '「' + currentKeyword + '」';
+  const grid = document.getElementById('rankGrid');
+  grid.innerHTML = '';
+  selected.forEach(imgIdx => {
+    const rankPos = rankOrder.indexOf(imgIdx); // -1 未排
+    const tile = document.createElement('div');
+    tile.className = 'rank-tile' + (rankPos >= 0 ? ' ranked' : '');
+    tile.innerHTML =
+      `<img src="${IMG_DIR + IMAGES[imgIdx]}" alt="">
+       <div class="dim"></div>
+       ${rankPos >= 0 ? `<div class="badge">${rankPos + 1}</div>` : ''}`;
+    tile.addEventListener('click', () => tapRank(imgIdx));
+    grid.appendChild(tile);
+  });
+  document.getElementById('finishBtn').classList.toggle('btn-disabled', rankOrder.length !== 5);
+}
+function tapRank(imgIdx) {
+  const pos = rankOrder.indexOf(imgIdx);
+  if (pos >= 0) rankOrder.splice(pos, 1);   // 取消该名次，后面的自动前移
+  else rankOrder.push(imgIdx);
+  renderRank();
+}
+function resetRank() { rankOrder = []; renderRank(); }
+
+/* ---------- 结果 ---------- */
+function finishRank() {
+  if (rankOrder.length !== 5) return;
+  renderResult();
+  showScreen('resultScreen');
+}
+function renderResult() {
+  document.getElementById('resKwInline').textContent = currentKeyword;
+  document.getElementById('resKwWord').textContent = '「' + currentKeyword + '」';
+  const list = document.getElementById('rlist');
+  list.innerHTML = '';
+  rankOrder.forEach((imgIdx, i) => {
+    const item = document.createElement('div');
+    item.className = 'ritem';
+    item.innerHTML =
+      `<div class="rrank">${i + 1}</div>
+       <div class="rthumb"><img src="${IMG_DIR + IMAGES[imgIdx]}" alt=""></div>
+       <div class="rmeta">${i === 0 ? '最贴近 ❤' : i === rankOrder.length - 1 ? '稍远一点' : ''}</div>`;
+    list.appendChild(item);
+  });
+}
+</script>
+</body>
+</html>

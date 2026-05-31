@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>关系游戏</title>
+  <title>关系奇旅</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -37,16 +37,8 @@
     /* ── Header ── */
     .header {
       text-align: center;
-      margin-bottom: 72px;
+      margin-bottom: 56px;
       animation: up .9s var(--ease) 0s both;
-    }
-    .header-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .24em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 20px;
     }
     .header h1 {
       font-family: 'Noto Serif SC', serif;
@@ -55,12 +47,21 @@
       line-height: 1.08;
       letter-spacing: -.02em;
       color: var(--text);
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
-    .header p {
-      font-size: 16px;
-      color: var(--muted);
-      letter-spacing: .04em;
+    .header-sub {
+      font-size: 18px;
+      font-style: italic;
+      font-weight: 400;
+      color: #A89E94;
+      letter-spacing: .12em;
+      margin-bottom: 32px;
+    }
+    .header-rule {
+      width: 48px;
+      height: 1px;
+      background: rgba(0,0,0,.12);
+      margin: 0 auto;
     }
 
     /* ── Grid ── */
@@ -86,6 +87,7 @@
     a.game-card:nth-child(2) { animation: up .72s var(--ease) .18s both; }
     a.game-card:nth-child(3) { animation: up .72s var(--ease) .28s both; }
     a.game-card:nth-child(4) { animation: up .72s var(--ease) .38s both; }
+    a.game-card:nth-child(5) { animation: up .72s var(--ease) .46s both; }
     a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
     a.game-card:active { transform: translateY(-3px); }
 
@@ -176,6 +178,29 @@
       letter-spacing: .04em;
       white-space: nowrap;
     }
+
+    /* ⑤ rank — 知己成双 */
+    .visual-content.rank-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      width: 100%;
+      padding: 0 14px;
+    }
+    .rk-row { display: flex; align-items: center; gap: 12px; }
+    .rk-n {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 900;
+      font-size: 18px;
+      color: rgba(255,255,255,.92);
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .rk-bar { flex: 1; height: 24px; border-radius: 7px; }
+    .rk-row:nth-child(1) .rk-bar { background: rgba(255,255,255,.34); }
+    .rk-row:nth-child(2) .rk-bar { background: rgba(255,255,255,.24); }
+    .rk-row:nth-child(3) .rk-bar { background: rgba(255,255,255,.15); }
 
     /* ④ score — 我们之间几分 */
     .visual-content.score-preview { text-align: center; }
@@ -328,6 +353,7 @@
     @media (max-width: 560px) {
       body { padding: 60px 16px 80px; }
       .header h1 { font-size: 44px; }
+      .header-sub { font-size: 15px; letter-spacing: .08em; }
       .games { grid-template-columns: 1fr; }
       .card-visual { height: 178px; }
     }
@@ -340,9 +366,9 @@
   <div class="container">
 
     <header class="header">
-      <p class="header-label">互动小游戏</p>
-      <h1>关系游戏</h1>
-      <p>让彼此更了解彼此。</p>
+      <h1>关系奇旅</h1>
+      <p class="header-sub">A journey into your heart</p>
+      <div class="header-rule"></div>
     </header>
 
     <div class="games">
@@ -434,6 +460,26 @@
           </div>
           <h2>需求押注</h2>
           <p>场景出现，各自把心押在最需要的卡上——揭晓那一刻，看见彼此真正需要什么。</p>
+          <span class="card-link">开始游戏 →</span>
+        </div>
+      </a>
+
+      <!-- 05 知己成双 -->
+      <a class="game-card" href="./match/">
+        <div class="card-visual v5">
+          <div class="visual-content rank-preview">
+            <div class="rk-row"><span class="rk-n">1</span><span class="rk-bar"></span></div>
+            <div class="rk-row"><span class="rk-n">2</span><span class="rk-bar"></span></div>
+            <div class="rk-row"><span class="rk-n">3</span><span class="rk-bar"></span></div>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">05</span>
+            <span class="card-tag">2人 · 图像联想</span>
+          </div>
+          <h2>知己成双</h2>
+          <p>一个词，五张图，排出你的顺序——拿给对方看，你们是不是想到一块去了。</p>
           <span class="card-link">开始游戏 →</span>
         </div>
       </a>
