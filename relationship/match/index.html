@@ -72,6 +72,26 @@
     .mechanic-text { font-size:14px; line-height:1.6; }
     .mechanic-text em { font-style:normal; color:var(--accent); font-weight:600; }
 
+    /* 计分规则盒（开始页） */
+    .score-rule-box { background:var(--card); border-radius:16px; padding:16px 20px; margin-bottom:16px; box-shadow:0 2px 16px rgba(80,50,110,.07); }
+    .srb-title { font-size:13px; font-weight:700; color:var(--muted); margin-bottom:12px; letter-spacing:.04em; }
+    .srb-item { display:flex; align-items:center; gap:11px; font-size:13.5px; color:var(--text); line-height:1.5; margin-bottom:10px; }
+    .srb-item:last-child { margin-bottom:0; }
+    .srb-pt { flex-shrink:0; min-width:32px; text-align:center; font-weight:800; font-size:13px; padding:3px 7px; border-radius:8px; color:#fff; }
+    .srb-pt.p2 { background:var(--accent); }
+    .srb-pt.p1 { background:#B6A2CC; }
+    .kw-note { font-size:12.5px; color:var(--muted); line-height:1.7; background:var(--soft); border-radius:12px; padding:12px 16px; margin-bottom:24px; }
+    .kw-note b { color:var(--accent); }
+
+    /* 计分器（辅助功能，低调小巧） */
+    .scorebox { display:flex; align-items:center; justify-content:center; gap:7px; background:var(--soft); border-radius:12px; padding:7px 10px; margin-bottom:14px; flex-wrap:wrap; }
+    .sb-label { font-size:12px; color:var(--muted); margin-right:1px; }
+    .my-score-num { font-family:'Noto Serif SC',serif; font-weight:900; font-size:21px; color:var(--accent); min-width:26px; text-align:center; }
+    .sb-btn { border:none; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700; padding:5px 9px; border-radius:8px; background:#fff; color:var(--accent); box-shadow:0 1px 4px rgba(80,50,110,.1); transition:.15s; }
+    .sb-btn:active { transform:scale(.9); }
+    .sb-btn.sb-plus2 { background:var(--accent); color:#fff; box-shadow:none; }
+    .sb-reset { border:none; background:none; cursor:pointer; font-family:inherit; font-size:11px; color:rgba(139,130,149,.7); text-decoration:underline; padding:4px 2px; }
+
     /* ── 关键词屏 ── */
     .kw-hint { font-size:13px; color:var(--muted); letter-spacing:.1em; text-align:center; margin:36px 0 14px; }
     .kw-card {
@@ -178,21 +198,27 @@
   </div>
   <p class="start-label">互动游戏 · 05</p>
   <h1 class="start-title">知己<br>成双</h1>
-  <p class="start-desc">一个词，五张图。<br>看看你们是不是想到一块去了。</p>
+  <p class="start-desc"><b style="color:var(--accent)">2–8 人</b>，人越多越好玩。<br>看看你们是不是想到一块去了。</p>
   <div class="mechanic-box">
     <div class="mechanic-item">
       <div class="mechanic-num">1</div>
-      <div class="mechanic-text">出现一个关键词，比如 <em>「家」</em></div>
+      <div class="mechanic-text"><em>两人一队</em>（先给你们的组合起个队名吧～）。人多就分多队，比如 6 人 = 3 队</div>
     </div>
     <div class="mechanic-item">
       <div class="mechanic-num">2</div>
-      <div class="mechanic-text">从所有图里挑 <em>5 张</em>，再排出和它<em>最贴近</em>的顺序</div>
+      <div class="mechanic-text">同一个关键词，<em>每人各自</em>挑 5 张图、排出顺序</div>
     </div>
     <div class="mechanic-item">
       <div class="mechanic-num">3</div>
-      <div class="mechanic-text">做完<em>拿给对方看</em>——聊聊你们各自为什么这样选</div>
+      <div class="mechanic-text">队内<em>对比两人的 5 张</em>，按下面规则算分，用计分器记下你们队的分</div>
     </div>
   </div>
+  <div class="score-rule-box">
+    <div class="srb-title">怎么算分</div>
+    <div class="srb-item"><span class="srb-pt p2">+2</span><span><b>完美配对</b>：同一名次，选了同一张图</span></div>
+    <div class="srb-item"><span class="srb-pt p1">+1</span><span><b>同图不同位</b>：同一张图都选了，但名次不同</span></div>
+  </div>
+  <p class="kw-note">💡 多人一起玩：大家各自打开游戏，统一用其中<b>一台手机</b>上的关键词就好——谁的词都行，换到大家都喜欢的那个。</p>
   <button class="btn btn-primary" onclick="startGame()">开始</button>
 </div>
 
@@ -209,6 +235,14 @@
   </div>
   <button class="btn btn-primary" onclick="startSelect()">开始选图</button>
   <button class="change-link" onclick="changeKeyword()">↻ 换一个关键词</button>
+  <div class="scorebox">
+    <span class="sb-label">我的得分</span>
+    <button class="sb-btn" onclick="addScore(-1)">−1</button>
+    <span class="my-score-num">0</span>
+    <button class="sb-btn" onclick="addScore(1)">+1</button>
+    <button class="sb-btn sb-plus2" onclick="addScore(2)">+2</button>
+    <button class="sb-reset" onclick="resetScore()">归零</button>
+  </div>
 </div>
 
 <!-- ③ 选图屏 -->
@@ -264,6 +298,14 @@
   <div class="result-prompt">
     <p>把你的排序给对方看看 👀<br>聊聊你们为什么这样选 ✨</p>
   </div>
+  <div class="scorebox">
+    <span class="sb-label">我的得分</span>
+    <button class="sb-btn" onclick="addScore(-1)">−1</button>
+    <span class="my-score-num">0</span>
+    <button class="sb-btn" onclick="addScore(1)">+1</button>
+    <button class="sb-btn sb-plus2" onclick="addScore(2)">+2</button>
+    <button class="sb-reset" onclick="resetScore()">归零</button>
+  </div>
   <div class="btn-row">
     <button class="btn btn-primary" onclick="newKeyword()">换个关键词再来</button>
     <a href="../" class="btn btn-ghost">回首页</a>
@@ -293,7 +335,15 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
+  renderScore();
 }
+
+let myScore = 0;
+function renderScore() {
+  document.querySelectorAll('.my-score-num').forEach(e => e.textContent = myScore);
+}
+function addScore(n) { myScore = Math.max(0, myScore + n); renderScore(); }
+function resetScore() { myScore = 0; renderScore(); }
 
 function shuffle(arr) {
   const r = [...arr];
