@@ -71,6 +71,9 @@
     .mechanic-num { width:24px; height:24px; border-radius:50%; background:var(--soft); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); margin-top:1px; }
     .mechanic-text { font-size:14px; line-height:1.6; }
     .mechanic-text em { font-style:normal; color:var(--accent); font-weight:600; }
+    .mechanic-label { font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--accent); margin-bottom:6px; text-transform:uppercase; }
+    .mechanic-sub { font-size:13px; color:var(--muted); line-height:1.65; margin-bottom:14px; }
+    .mechanic-footer { font-size:13px; color:var(--muted); line-height:1.65; margin-top:12px; padding-top:12px; border-top:1px solid rgba(142,108,172,.1); }
 
     /* 计分规则盒（开始页） */
     .score-rule-box { background:var(--card); border-radius:16px; padding:16px 20px; margin-bottom:16px; box-shadow:0 2px 16px rgba(80,50,110,.07); }
@@ -202,6 +205,19 @@
     .result-prompt p { font-size:14.5px; color:var(--text); line-height:1.75; }
     .btn-row { display:flex; flex-direction:column; gap:10px; }
     a.btn { text-decoration:none; display:flex; align-items:center; justify-content:center; }
+
+    /* ── 灯箱 ── */
+    .lightbox {
+      position:fixed; inset:0; z-index:999;
+      background:rgba(0,0,0,.92);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      cursor:zoom-out; opacity:0; pointer-events:none;
+      transition:opacity .2s;
+    }
+    .lightbox.active { opacity:1; pointer-events:auto; }
+    .lightbox img { max-width:100vw; max-height:88vh; object-fit:contain; border-radius:6px; }
+    .lightbox-hint { font-size:12px; color:rgba(255,255,255,.45); margin-top:14px; letter-spacing:.06em; }
+    .rthumb { cursor:pointer; }
   </style>
 </head>
 <body>
@@ -213,8 +229,26 @@
   </div>
   <p class="start-label">互动游戏 · 05</p>
   <h1 class="start-title">知己<br>成双</h1>
-  <p class="start-desc"><b style="color:var(--accent)">2–8 人</b>，人越多越好玩。<br>看看你们是不是想到一块去了。</p>
+  <p class="start-desc"><b style="color:var(--accent)">2–8 人</b>，人越多越好玩。<br>两种玩法随便切：话题开麦，或默契对决。</p>
   <div class="mechanic-box">
+    <div class="mechanic-label">玩法一 · 话题开麦</div>
+    <p class="mechanic-sub">适合两人深聊，也适合一人主持、带着大家一起探讨某个话题</p>
+    <div class="mechanic-item">
+      <div class="mechanic-num">1</div>
+      <div class="mechanic-text">主持人规定一个关键词，或从游戏里随机抽一个，比如「爱」或「自由」或「孤独」</div>
+    </div>
+    <div class="mechanic-item">
+      <div class="mechanic-num">2</div>
+      <div class="mechanic-text">大家各自浏览图片，选出最有感觉的<em>一张或几张</em>（具体要选多少张由主持人决定），不告诉别人</div>
+    </div>
+    <div class="mechanic-item">
+      <div class="mechanic-num">3</div>
+      <div class="mechanic-text"><em>依次展示</em>自己选的图，说说为什么是这张（或这几张）</div>
+    </div>
+    <p class="mechanic-footer">不算分，只管聊——往往聊出意想不到的东西</p>
+  </div>
+  <div class="mechanic-box">
+    <div class="mechanic-label">玩法二 · 默契对决</div>
     <div class="mechanic-item">
       <div class="mechanic-num">1</div>
       <div class="mechanic-text"><em>两人一队</em>（先给你们的组合起个队名吧～）。人多就分多队，比如 6 人 = 3 队</div>
@@ -340,6 +374,7 @@
     <div class="word" id="resKwWord"></div>
   </div>
   <div class="result-sub">从最贴近到次贴近</div>
+  <p style="font-size:15px;color:var(--muted);text-align:center;margin-bottom:10px;">👆 点击图片可放大，方便展示给大家</p>
   <div class="rlist" id="rlist"></div>
   <div class="result-prompt">
     <p>把你的排序给对方看看 👀<br>聊聊你们为什么这样选 ✨</p>
@@ -356,6 +391,12 @@
     <button class="btn btn-primary" onclick="newKeyword()">换个关键词再来</button>
     <a href="../" class="btn btn-ghost">回首页</a>
   </div>
+</div>
+
+<!-- 灯箱 -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="">
+  <span class="lightbox-hint">点击任意处关闭</span>
 </div>
 
 <script>
@@ -571,9 +612,20 @@ function renderResult() {
       `<div class="rrank">${i + 1}</div>
        <div class="rthumb"><img src="${IMG_DIR + IMAGES[imgIdx]}" alt=""></div>
        <div class="rmeta">${i === 0 ? '最贴近 ❤' : ''}</div>`;
+    item.querySelector('.rthumb').addEventListener('click', () => openLightbox(IMG_DIR + IMAGES[imgIdx]));
     list.appendChild(item);
   });
 }
+
+/* ---------- 灯箱 ---------- */
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 </script>
 </body>
 </html>
