@@ -134,7 +134,7 @@
       border:3px solid transparent; transition:border-color .2s;
     }
     .img-frame.is-selected { border-color:var(--accent); }
-    .img-frame img { width:100%; height:100%; object-fit:contain; display:block; }
+    .img-frame img { width:100%; height:100%; object-fit:contain; display:block; transition:opacity .15s ease; }
     .nav-arrow {
       position:absolute; top:50%; transform:translateY(-50%);
       width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
@@ -481,6 +481,8 @@ function newKeyword() {
 
 /* ---------- 第一轮：选 5 张 ---------- */
 function startSelect() {
+  // 进入选图界面时，把全部 30 张图一次性预加载到浏览器缓存
+  IMAGES.forEach(name => { const im = new Image(); im.src = IMG_DIR + name; });
   browseOrder = shuffle([...Array(IMAGES.length).keys()]);
   browsePos = 0;
   selected = [];
@@ -491,14 +493,20 @@ function preload(i) {
   if (i < 0 || i >= IMAGES.length) return;
   const im = new Image(); im.src = IMG_DIR + IMAGES[i];
 }
+function setImg(src) {
+  const img = document.getElementById('bigImg');
+  // 如果已在缓存中，直接切换（complete 为 true）
+  const tmp = new Image();
+  tmp.onload = () => { img.style.opacity = '0'; requestAnimationFrame(() => { img.src = src; img.style.opacity = '1'; }); };
+  tmp.src = src;
+  if (tmp.complete) { img.src = src; img.style.opacity = '1'; }
+}
 function renderSelect() {
   document.getElementById('selKw').textContent = '「' + currentKeyword + '」';
   document.getElementById('selCount').textContent = selected.length;
   const cur = browseOrder[browsePos];
-  document.getElementById('bigImg').src = IMG_DIR + IMAGES[cur];
+  setImg(IMG_DIR + IMAGES[cur]);
   document.getElementById('imgIndex').textContent = (browsePos + 1) + ' / ' + browseOrder.length;
-  if (browsePos + 1 < browseOrder.length) preload(browseOrder[browsePos + 1]);
-  if (browsePos - 1 >= 0) preload(browseOrder[browsePos - 1]);
 
   const isSel = selected.includes(cur);
   document.getElementById('imgFrame').classList.toggle('is-selected', isSel);
