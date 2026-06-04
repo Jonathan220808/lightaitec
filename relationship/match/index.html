@@ -134,6 +134,12 @@
       border:3px solid transparent; transition:border-color .2s;
     }
     .img-frame.is-selected { border-color:var(--accent); }
+    .img-frame.img-loading::after {
+      content:''; position:absolute; inset:0; border-radius:16px;
+      background:linear-gradient(90deg,var(--soft) 25%,rgba(255,255,255,.7) 50%,var(--soft) 75%);
+      background-size:200% 100%; animation:shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     .img-frame img { width:100%; height:100%; object-fit:contain; display:block; transition:opacity .15s ease; }
     .nav-arrow {
       position:absolute; top:50%; transform:translateY(-50%);
@@ -481,25 +487,36 @@ function newKeyword() {
 
 /* ---------- 第一轮：选 5 张 ---------- */
 function startSelect() {
-  // 进入选图界面时，把全部 30 张图一次性预加载到浏览器缓存
-  IMAGES.forEach(name => { const im = new Image(); im.src = IMG_DIR + name; });
   browseOrder = shuffle([...Array(IMAGES.length).keys()]);
   browsePos = 0;
   selected = [];
   renderSelect();
   showScreen('selectScreen');
+  // 第一张图已在 renderSelect 里触发加载，之后按浏览顺序逐张预加载
+  setTimeout(() => preloadSequential(1), 200);
 }
-function preload(i) {
-  if (i < 0 || i >= IMAGES.length) return;
-  const im = new Image(); im.src = IMG_DIR + IMAGES[i];
+function preloadSequential(idx) {
+  if (idx >= browseOrder.length) return;
+  const im = new Image();
+  im.onload = im.onerror = () => preloadSequential(idx + 1);
+  im.src = IMG_DIR + IMAGES[browseOrder[idx]];
 }
 function setImg(src) {
   const img = document.getElementById('bigImg');
-  // 如果已在缓存中，直接切换（complete 为 true）
+  const frame = document.getElementById('imgFrame');
   const tmp = new Image();
-  tmp.onload = () => { img.style.opacity = '0'; requestAnimationFrame(() => { img.src = src; img.style.opacity = '1'; }); };
+  tmp.onload = () => {
+    frame.classList.remove('img-loading');
+    img.src = src;
+    img.style.opacity = '1';
+  };
+  tmp.onerror = () => frame.classList.remove('img-loading');
   tmp.src = src;
-  if (tmp.complete) { img.src = src; img.style.opacity = '1'; }
+  if (tmp.complete) {
+    img.src = src; img.style.opacity = '1'; frame.classList.remove('img-loading');
+  } else {
+    img.style.opacity = '0'; frame.classList.add('img-loading');
+  }
 }
 function renderSelect() {
   document.getElementById('selKw').textContent = '「' + currentKeyword + '」';
