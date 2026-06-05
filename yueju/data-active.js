@@ -19,7 +19,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'lunwenxu',
-    image: 'portraits/倫.png',
+    image: 'portraits/倫.jpg',
     gender: 'male',
     role_type: '文生',
     name_cn: '伦文叙', name_en: 'Lun Wen-sui',
@@ -37,7 +37,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'tangminghuang',
-    image: 'portraits/唐明皇.png',
+    image: 'portraits/唐明皇.jpg',
     gender: 'male',
     role_type: '小生',
     name_cn: '唐明皇', name_en: 'Emperor Xuanzong',
@@ -55,7 +55,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'jiabaoyu',
-    image: 'portraits/寶玉.png',
+    image: 'portraits/寶玉.jpg',
     gender: 'male',
     role_type: '小生',
     name_cn: '贾宝玉', name_en: 'Jia Baoyu',
@@ -73,7 +73,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'liyi',
-    image: 'portraits/李益.png',
+    image: 'portraits/李益.jpg',
     gender: 'male',
     role_type: '小生',
     name_cn: '李益', name_en: 'Li Yi',
@@ -91,7 +91,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'xuxian',
-    image: 'portraits/許仙.png',
+    image: 'portraits/許仙.jpg',
     gender: 'male',
     role_type: '小生',
     name_cn: '许仙', name_en: 'Xu Xian',
@@ -109,7 +109,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'zhaoyun',
-    image: 'portraits/赵云.png',
+    image: 'portraits/赵云.jpg',
     gender: 'male',
     role_type: '武生',
     name_cn: '赵云', name_en: 'Zhao Yun',
@@ -131,7 +131,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'longnvsanniang',
-    image: 'portraits/三娘.png',
+    image: 'portraits/三娘.jpg',
     gender: 'female',
     role_type: '正印花旦',
     name_cn: '龙女三娘', name_en: 'Long Nu San-niang',
@@ -149,7 +149,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'yangguifei',
-    image: 'portraits/楊貴妃.png',
+    image: 'portraits/楊貴妃.jpg',
     gender: 'female',
     role_type: '正印花旦',
     name_cn: '杨贵妃', name_en: 'Yang Guifei',
@@ -167,7 +167,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'baisuzhen',
-    image: 'portraits/白娘子.png',
+    image: 'portraits/白娘子.jpg',
     gender: 'female',
     role_type: '正印花旦',
     name_cn: '白素貞', name_en: 'Bai Suzhen',
@@ -185,7 +185,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'huaruifuren',
-    image: 'portraits/花蕊夫人.png',
+    image: 'portraits/花蕊夫人.jpg',
     gender: 'female',
     role_type: '正印花旦',
     name_cn: '花蕊夫人', name_en: 'Lady Huarui',
@@ -203,7 +203,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'axiu',
-    image: 'portraits/阿琇.png',
+    image: 'portraits/阿琇.jpg',
     gender: 'female',
     role_type: '花旦',
     name_cn: '阿琇', name_en: 'A-xiu',
@@ -221,7 +221,7 @@ window.ACTIVE_CHARACTERS = [
 
   {
     id: 'lindaiyu',
-    image: 'portraits/黛玉.png',
+    image: 'portraits/黛玉.jpg',
     gender: 'female',
     role_type: '正印花旦 / 文旦',
     name_cn: '林黛玉', name_en: 'Lin Daiyu',
