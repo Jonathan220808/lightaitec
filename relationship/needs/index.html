@@ -209,6 +209,34 @@
     }
     .home-link-tiny:hover { color:var(--muted); }
 
+    /* ── 联机覆盖层 ── */
+    .mp-overlay { display:none; position:fixed; inset:0; background:rgba(253,248,242,.97); z-index:200; overflow-y:auto; padding:28px 20px 60px; max-width:480px; margin:0 auto; left:0; right:0; }
+    .mp-overlay.open { display:block; }
+    .mp-back-btn { background:none; border:none; cursor:pointer; font-size:13px; color:var(--muted); padding:0 0 20px; font-family:inherit; }
+    .mp-title { font-family:'Noto Serif SC',serif; font-size:28px; font-weight:900; margin-bottom:8px; }
+    .mp-sub { font-size:14px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
+    .mp-inp { width:100%; padding:13px 16px; border-radius:12px; border:1.5px solid rgba(154,128,112,.25); font-size:15px; font-family:inherit; background:#fff; outline:none; margin-bottom:10px; display:block; }
+    .mp-inp:focus { border-color:var(--accent); }
+    .mp-btn-p { width:100%; padding:15px; border-radius:13px; border:none; background:var(--accent); color:#fff; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+    .mp-btn-g { width:100%; padding:13px; border-radius:13px; border:1.5px solid rgba(154,128,112,.3); background:transparent; color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+    .mp-div { display:flex; align-items:center; gap:10px; margin:14px 0; font-size:12px; color:var(--muted); }
+    .mp-div-line { flex:1; height:1px; background:rgba(154,128,112,.2); }
+    .mp-err { font-size:13px; color:#C0392B; min-height:18px; margin-top:4px; }
+    .mp-code-box { background:#fff; border-radius:18px; padding:20px; text-align:center; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+    .mp-code-lbl { font-size:11px; color:var(--muted); letter-spacing:.1em; margin-bottom:6px; }
+    .mp-code-num { font-family:'Noto Serif SC',serif; font-size:48px; font-weight:900; color:var(--accent); letter-spacing:.12em; }
+    .mp-code-hint { font-size:12px; color:var(--muted); margin-top:6px; }
+    .mp-plist { background:#fff; border-radius:12px; padding:12px 16px; margin-bottom:16px; box-shadow:0 1px 8px rgba(0,0,0,.04); }
+    .mp-pitem { display:flex; align-items:center; padding:6px 0; font-size:13px; border-bottom:1px solid rgba(154,128,112,.1); }
+    .mp-pitem:last-child { border-bottom:none; }
+    .mp-pdot { width:7px; height:7px; border-radius:50%; background:var(--accent); margin-right:9px; flex-shrink:0; }
+    .mp-ptag { margin-left:auto; font-size:11px; color:var(--muted); }
+    .mp-badge-inline { display:inline-block; font-size:11px; background:rgba(184,134,78,.12); color:var(--accent); font-weight:700; padding:2px 8px; border-radius:20px; }
+    .mp-online-link { font-size:12px; background:rgba(184,134,78,.1); color:var(--accent); border:none; border-radius:20px; padding:5px 12px; cursor:pointer; font-family:inherit; font-weight:600; }
+    .mp-wait-box { background:var(--soft); border-radius:14px; padding:18px; text-align:center; margin-bottom:16px; }
+    .mp-wait-box p { font-size:14px; color:var(--muted); line-height:1.7; }
+    .mp-ready-box { background:rgba(184,134,78,.06); border-radius:14px; padding:14px 16px; margin-bottom:12px; font-size:13px; color:var(--muted); text-align:center; }
+
     .end-wrap { text-align:center; padding:48px 0 0; }
     .end-emoji { font-size:68px; margin-bottom:24px; }
     .end-title {
@@ -240,7 +268,8 @@
       <div class="mechanic-text"><em>一起揭晓</em>——看 B 猜对多少，聊聊那些不一样的</div>
     </div>
   </div>
-  <button class="btn btn-primary" onclick="startGame()">开始游戏</button>
+  <button class="btn btn-primary" onclick="startGame()">传着玩（一台手机轮流）</button>
+  <button class="btn btn-ghost" style="margin-top:10px;" onclick="openNeedsMp()">🌐 联机玩（各用各的手机·可线上）</button>
 </div>
 
 <!-- ② 场景屏 -->
@@ -257,7 +286,9 @@
   <div class="scenario-card">
     <p class="scenario-text" id="scenarioText"></p>
   </div>
-  <button class="btn btn-primary" onclick="startBetA()">A 先来押注</button>
+  <!-- 联机模式：主角操作区 / 等待提示 -->
+  <div id="mpScenarioCtrl" style="display:none;"></div>
+  <button id="scenarioBetABtn" class="btn btn-primary" onclick="startBetA()">A 先来押注</button>
   <button class="change-scene-link" onclick="changeScenario()">↻ 换一个场景</button>
 </div>
 
@@ -431,6 +462,14 @@ function startBetA() {
   currentNeeds = shuffle([...currentScenario.defaults]).slice(0, 5);
   renderBet();
   showScreen('betScreen');
+  if (needsInMp && needsMpIsSubject) {
+    needsSend({type:'guess_round_data', roundData:{
+      scenarioText: currentScenario.text,
+      scenarioDefaults: currentScenario.defaults,
+      needsCards: currentNeeds,
+      totalHearts: TOTAL_HEARTS,
+    }});
+  }
 }
 
 function startBetB() {
@@ -596,6 +635,197 @@ function nextRound() {
   currentRound++;
   pickNewScenario();
   showScenario();
+}
+
+// ── 联机：在 confirmBet 里插入 MP 逻辑 ──
+const _origConfirm = confirmBet;
+function confirmBet() {
+  if (!needsInMp) { _origConfirm(); return; }
+  if (isPhaseA) {
+    // 主角选好了：发给服务器（隐藏），让其他人猜
+    needsSend({type:'guess_subject_done', selection: heartA});
+    needsAfterA = [...currentNeeds];
+    // 主角看"等待他人猜测"
+    document.getElementById('confirmBtn').disabled = true;
+    document.getElementById('confirmBtn').textContent = '✅ 已提交，等待其他人猜测…';
+  } else {
+    // B 猜好了：发给服务器
+    needsSend({type:'guess_player_guess', guess: heartB});
+    document.getElementById('confirmBtn').disabled = true;
+    document.getElementById('confirmBtn').textContent = '✅ 已提交猜测';
+  }
+}
+
+</script>
+
+<!-- 联机覆盖层 -->
+<div class="mp-overlay" id="needsMpOverlay">
+  <button class="mp-back-btn" onclick="closeNeedsMp()">← 返回</button>
+
+  <!-- Step1: 输入昵称 -->
+  <div id="needsMpS1">
+    <p class="mp-title">联机 · 需求押注</p>
+    <p class="mp-sub">多台手机同步场景与牌局<br>线下或线上都能玩</p>
+    <input class="mp-inp" id="needsMpName" type="text" placeholder="先输入你的昵称（最多12字）" maxlength="12">
+    <button class="mp-btn-p" onclick="needsMpConfirm()">确认昵称</button>
+    <p class="mp-err" id="needsMpErr"></p>
+  </div>
+
+  <!-- Step2: 创建/加入 -->
+  <div id="needsMpS2" style="display:none;">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">你好，<b id="needsMpCName"></b> 👋</p>
+    <button class="mp-btn-p" onclick="needsMpCreate()">创建房间（我来主持）</button>
+    <div class="mp-div"><div class="mp-div-line"></div><span>或加入已有房间</span><div class="mp-div-line"></div></div>
+    <input class="mp-inp" id="needsMpCodeIn" type="text" placeholder="输入4位房间号" maxlength="4" inputmode="numeric">
+    <button class="mp-btn-g" onclick="needsMpJoin()">加入房间</button>
+    <p class="mp-err" id="needsMpJErr"></p>
+  </div>
+
+  <!-- 等待室 -->
+  <div id="needsMpLobby" style="display:none;">
+    <div class="mp-code-box">
+      <p class="mp-code-lbl">房间号</p>
+      <p class="mp-code-num" id="needsMpCode">—</p>
+      <p class="mp-code-hint">把号码告诉朋友，大家进来</p>
+    </div>
+    <div class="mp-plist">
+      <p style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px;">已加入 <span id="needsMpCnt">0</span> 人</p>
+      <div id="needsMpPlist"></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center;">进入后，任意玩家点「这轮我来」成为本轮A</p>
+    <button class="mp-btn-p" onclick="needsMpEnter()">进入游戏 →</button>
+  </div>
+</div>
+
+<script>
+const NEEDS_WS = 'wss://lightaitec.com/relationship/needs/ws';
+let needsInMp=false, needsWs=null, needsMyId=null, needsMyName='', needsIsHost=false, needsMpIsSubject=false;
+
+function openNeedsMp() { document.getElementById('needsMpOverlay').classList.add('open'); }
+function closeNeedsMp() { document.getElementById('needsMpOverlay').classList.remove('open'); }
+function needsMpEnter() { needsInMp=true; closeNeedsMp(); showScreen('startScreen'); /* show volunteer btn */ needsMpUpdateScenario(); }
+
+function needsSend(msg) { if(needsWs&&needsWs.readyState===1) needsWs.send(JSON.stringify(msg)); }
+
+function needsMpConfirm() {
+  const n=document.getElementById('needsMpName').value.trim();
+  if(!n){document.getElementById('needsMpErr').textContent='请输入昵称';return;}
+  needsMyName=n; document.getElementById('needsMpErr').textContent='';
+  document.getElementById('needsMpCName').textContent=n;
+  document.getElementById('needsMpS1').style.display='none';
+  document.getElementById('needsMpS2').style.display='block';
+}
+function needsMpCreate() {
+  needsIsHost=true;
+  needsWs=new WebSocket(NEEDS_WS);
+  needsWs.onopen=()=>needsSend({type:'create_room',playerName:needsMyName});
+  needsWs.onmessage=e=>needsMpMsg(JSON.parse(e.data));
+  needsWs.onerror=()=>{};
+}
+function needsMpJoin() {
+  const code=document.getElementById('needsMpCodeIn').value.trim();
+  if(!code||code.length!==4){document.getElementById('needsMpJErr').textContent='请输入4位房间号';return;}
+  needsWs=new WebSocket(NEEDS_WS);
+  needsWs.onopen=()=>needsSend({type:'join_room',roomCode:code,playerName:needsMyName});
+  needsWs.onmessage=e=>needsMpMsg(JSON.parse(e.data));
+  needsWs.onerror=()=>{};
+}
+function needsMpMsg(msg) {
+  if(msg.type==='room_created'){needsMyId=msg.state.players[0].id;needsMpShowLobby(msg.state);}
+  else if(msg.type==='joined'||msg.type==='rejoined'){needsMyId=msg.state.players.find(p=>p.name===needsMyName)?.id;needsMpShowLobby(msg.state);}
+  else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){needsMpRender(msg.state);}
+  else if(msg.type==='guess_subject_set'){
+    // 有人成为了本轮A
+    needsMpIsSubject = msg.state?.players?.find(p=>p.id===needsMyId)?.id === msg.state?.guessState?.subjectId;
+    needsMpUpdateScenario(msg.subjectName);
+  }
+  else if(msg.type==='guess_round_start'){
+    // A发来了场景+牌局数据，其他人切换到猜测模式
+    if(!needsMpIsSubject){
+      // 还原场景数据并显示场景屏
+      const rd = msg.roundData;
+      currentScenario = {text:rd.scenarioText, defaults:rd.scenarioDefaults};
+      currentNeeds = rd.needsCards;
+      needsAfterA = [...rd.needsCards];
+      document.getElementById('scenarioText').textContent = rd.scenarioText;
+      showScreen('scenarioScreen');
+      // 修改场景屏按钮：不是A
+      document.getElementById('scenarioBetABtn').style.display='none';
+      document.getElementById('mpScenarioCtrl').innerHTML=
+        '<div class="mp-wait-box"><p>等待A押注中…</p></div>';
+      document.getElementById('mpScenarioCtrl').style.display='block';
+    }
+  }
+  else if(msg.type==='guess_others_turn'){
+    // A押注完了，其他人可以猜了
+    if(!needsMpIsSubject){
+      isPhaseA=false; heartB={}; heartsLeftB=TOTAL_HEARTS;
+      renderBet(); showScreen('betScreen');
+      // 修改确认按钮标签
+      document.getElementById('confirmBtn').textContent='提交猜测';
+      document.getElementById('refreshAllBtn').style.display='none';
+    }
+  }
+  else if(msg.type==='guess_player_ready'){
+    // 别人猜好了，提示
+    if(needsMpIsSubject){
+      const el=document.getElementById('confirmBtn');
+      el.textContent=`✅ 已提交 · ${msg.readyCount}人猜好了 — 按揭晓看结果`;
+      el.disabled=false; el.onclick=()=>needsSend({type:'guess_reveal'});
+    }
+  }
+  else if(msg.type==='guess_revealed'){
+    // 揭晓：显示A的选择 vs 所有人的猜测
+    heartA = msg.subjectData || {};
+    if(!needsMpIsSubject){
+      const guessEntry = Object.values(msg.guesses||{}).find(g=>g.name===needsMyName);
+      heartB = guessEntry?.guess || {};
+    }
+    needsAfterA = [...currentNeeds];
+    showReveal();
+  }
+  else if(msg.type==='guess_reset'){
+    needsMpIsSubject=false;
+    needsMpUpdateScenario();
+  }
+  else if(msg.type==='error'){document.getElementById('needsMpJErr').textContent=msg.message;}
+}
+function needsMpShowLobby(state) {
+  document.getElementById('needsMpS2').style.display='none';
+  document.getElementById('needsMpLobby').style.display='block';
+  needsMpRender(state);
+}
+function needsMpRender(state) {
+  document.getElementById('needsMpCode').textContent=state.code;
+  document.getElementById('needsMpCnt').textContent=state.players.length;
+  const list=document.getElementById('needsMpPlist'); list.innerHTML='';
+  state.players.forEach((p,i)=>{
+    const d=document.createElement('div'); d.className='mp-pitem';
+    d.innerHTML=`<span class="mp-pdot"></span><span>${p.name}${p.id===needsMyId?' (我)':''}</span><span class="mp-ptag">${i===0?'主持人':''}</span>`;
+    list.appendChild(d);
+  });
+}
+function needsMpUpdateScenario(subjectName) {
+  if(!needsInMp) return;
+  const ctrl=document.getElementById('mpScenarioCtrl');
+  const betBtn=document.getElementById('scenarioBetABtn');
+  if(!subjectName){
+    // 没人当A，显示"这轮我来"
+    ctrl.innerHTML=`<button class="btn btn-primary" style="margin-bottom:8px" onclick="needsMpVolunteer()">这轮我来！（我当A）</button>`;
+    ctrl.style.display='block'; betBtn.style.display='none';
+  } else if(needsMpIsSubject){
+    ctrl.style.display='none'; betBtn.style.display='block';
+  } else {
+    ctrl.innerHTML=`<div class="mp-wait-box"><p>${subjectName} 是本轮A，等待TA押注…</p></div>`;
+    ctrl.style.display='block'; betBtn.style.display='none';
+  }
+}
+function needsMpVolunteer() {
+  needsMpIsSubject=true;
+  needsSend({type:'guess_volunteer'});
+  pickNewScenario();
+  showScenario();
+  needsMpUpdateScenario('me');
 }
 </script>
 </body>
