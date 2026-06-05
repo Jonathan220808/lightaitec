@@ -234,7 +234,12 @@ function cosineSim(a, b) {
 function renderTopBar() {
   return `
     <div class="topbar">
-      <div class="brand">${t('brand')}</div>
+      <div class="brand">
+        <div class="brand-title">一隅回音</div>
+        <div class="brand-sub">粵劇 × 咖啡</div>
+        <div class="brand-tagline">A Touch of Cantonese Opera</div>
+        <div class="brand-tagline">From a Drop of Coffee</div>
+      </div>
       <div class="lang-switch">
         <button class="${state.lang === 'zh' ? 'active' : ''}" data-lang="zh">中文</button>
         <button class="${state.lang === 'en' ? 'active' : ''}" data-lang="en">EN</button>
@@ -415,12 +420,17 @@ function renderResult() {
       <div class="result-name-en">${altLang(c.name_cn, c.name_en)}</div>
       <div class="result-from">${t('result_from', { play: altLang(c.play_en, c.play_cn) })}</div>
       <div class="result-quote">"${altLang(c.quote_en, c.quote_cn)}"</div>
+      ${c.coffee_cn ? `
+      <div class="result-coffee">
+        <span class="coffee-label">豆香</span>
+        <span class="coffee-text">${c.coffee_cn}</span>
+      </div>` : ''}
       <div class="result-letter">
         ${altLang(c.letter_en, c.letter_cn)}
         <div class="result-letter-en">${altLang(c.letter_cn, c.letter_en)}</div>
       </div>
       <div class="center-action">
-        <button class="btn" data-action="to-monologue">${t('listen_btn')}</button>
+        <button class="btn btn-ghost" data-action="restart">${t('play_again')}</button>
       </div>
     </div>
   `;

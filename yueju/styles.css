@@ -117,10 +117,12 @@ body::before {
   border-radius: 6px;
 }
 
-/* Result screen — full-bleed portrait */
+/* Result screen — full image, no cropping */
 .portrait-frame .character-photo {
-  max-width: 320px;
-  box-shadow: 0 8px 32px rgba(42, 26, 10, 0.18);
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
 }
 
 /* Monologue screen — soft, atmospheric backdrop */
@@ -251,13 +253,45 @@ p  { line-height: 1.75; }
 .topbar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 18px 24px 0;
-  height: 50px;
+  align-items: flex-start;
+  padding: 14px 20px 0;
+  min-height: 72px;
   flex-shrink: 0;
 }
 
 .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.25;
+}
+
+.brand-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  font-family: var(--serif-cn);
+}
+
+.brand-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--cream);
+  font-family: var(--serif-cn);
+}
+
+.brand-tagline {
+  font-size: 0.46rem;
+  letter-spacing: 0.04em;
+  color: var(--text-mute);
+  font-family: var(--serif-en);
+  font-style: italic;
+}
+
+/* keep old .brand opacity rule below — no longer used but harmless */
+.brand-legacy {
   font-size: 0.7rem;
   letter-spacing: 0.3em;
   color: var(--gold);
@@ -780,13 +814,14 @@ p  { line-height: 1.75; }
 
 /* ============= portrait frames ============= */
 .portrait-frame {
-  width: 200px;
-  height: 250px;
+  /* 450px = previous 300px × 1.5; min() keeps it inside the viewport */
+  width: min(450px, 88vw);
+  height: auto;          /* grows to show the full image — no cropping */
   margin: 16px auto 8px;
   background: var(--bg-card);
   border: 1px solid var(--gold);
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;     /* was hidden — that was clipping the bottom */
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 24px rgba(212, 160, 23, 0.08);
   animation: portraitReveal 1s ease-out;
 }
@@ -848,6 +883,42 @@ p  { line-height: 1.75; }
   color: var(--cream-soft);
   margin: 20px 0;
   padding: 0 16px;
+  font-style: italic;
+}
+
+/* ===== 豆香 coffee flavor tag ===== */
+.result-coffee {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 auto 20px;
+  padding: 10px 16px;
+  background: rgba(240, 184, 48, 0.10);   /* faint sunlit yellow */
+  border: 1px solid rgba(240, 184, 48, 0.45);
+  border-radius: 4px;
+  max-width: min(450px, 88vw);
+  text-align: left;
+}
+
+.coffee-label {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--gold);                      /* red accent */
+  font-family: var(--serif-cn);
+  text-transform: uppercase;
+  border: 1px solid var(--gold);
+  padding: 1px 5px;
+  border-radius: 2px;
+  line-height: 1.6;
+}
+
+.coffee-text {
+  font-size: 0.8rem;
+  font-family: var(--serif-cn);
+  color: var(--cream-soft);
+  line-height: 1.7;
   font-style: italic;
 }
 
@@ -1233,6 +1304,6 @@ p  { line-height: 1.75; }
   .screen { padding: 24px 18px; }
   .result-name-cn { font-size: 1.9rem; }
   .ticket { padding: 18px; }
-  .portrait-frame { width: 170px; height: 212px; }
+  .portrait-frame { width: min(340px, 88vw); height: auto; }
   .camera-frame { max-width: 320px; }
 }

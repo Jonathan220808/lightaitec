@@ -1,33 +1,37 @@
 /* ============================================================
    ACTIVE CHARACTERS — currently in play.
-   Only these 15 characters can be matched. The 60-character pool
-   in data.js (window.CHARACTERS) is kept as historical reference
-   but is no longer used by the game.
-   Each active character has an `image` field pointing to a real
-   portrait illustration; the renderer prefers that over the
-   generated SVG portrait from portraits.js.
+   12 characters (6 male + 6 female) as of 5th Jun update.
+   The 60-character pool in data.js is kept as historical
+   reference but is no longer used by the game.
+   Each character has:
+     image       — portrait illustration path
+     coffee_cn   — coffee flavor signature (粤剧咖啡 product tie-in)
+     quote_cn/en — famous literary line shown on result screen
+     letter_cn/en— personalised letter to the user
+     monologue_cn/en — classic 粤剧 aria / signature line
    ============================================================ */
 
 window.ACTIVE_CHARACTERS = [
 
   /* ============================================================ */
-  /* ===                    男 · MALE (9)                     === */
+  /* ===                    男 · MALE (6)                     === */
   /* ============================================================ */
 
   {
     id: 'lunwenxu',
     image: 'portraits/倫.png',
     gender: 'male',
-    role_type: '丑生 / 文生',
+    role_type: '文生',
     name_cn: '伦文叙', name_en: 'Lun Wen-sui',
-    play_cn: '《伦文叙智斗柳先开》', play_en: 'The Wit of Lun Wen-sui',
+    play_cn: '《伦文叙》', play_en: 'The Wit of Lun Wen-sui',
     traits: { '痴情': 3, '烈': 4, '飘逸': 6, '智慧': 10, '谐趣': 9, '决绝': 5 },
+    coffee_cn: '比利时传统厚巧克力为基调，层次带来如地中海岩礁飘送的海盐味 · 哥伦比亚',
     quote_cn: '一支笔可以输给一支剑，但赢回来要等三十年。',
     quote_en: 'A pen can lose to a sword — and take thirty years to win back.',
-    letter_cn: '你和伦文叙一样，是个用脑子赢的人。你看见别人看不见的破绽，又懂得不当场点破——这是岭南人很老的那种聪明。',
+    letter_cn: '你和伦文叙一样，是个用脑子赢的人。你看见别人看不到的破绽，又懂得不当场点破——这是岭南智慧。',
     letter_en: 'Like Lun Wen-sui, you win with your mind. You see the gap others miss, and you have the wit to not call it out in the moment — the old Lingnan kind of cleverness.',
-    monologue_cn: '别急着输——再听一句。',
-    monologue_en: 'Do not be in a rush to lose — hear one more line.',
+    monologue_cn: '書生氣傲，居貧亦自好。',
+    monologue_en: 'A scholar keeps his pride — even poverty cannot diminish him.',
     event_cn: '南国剧场 · 6 月 22 日', event_en: 'Nanguo Theatre · June 22'
   },
 
@@ -35,10 +39,11 @@ window.ACTIVE_CHARACTERS = [
     id: 'tangminghuang',
     image: 'portraits/唐明皇.png',
     gender: 'male',
-    role_type: '武生',
+    role_type: '小生',
     name_cn: '唐明皇', name_en: 'Emperor Xuanzong',
-    play_cn: '《长生殿》', play_en: 'The Palace of Eternal Life',
+    play_cn: '《唐宫香梦证前盟》', play_en: 'The Palace of Eternal Life',
     traits: { '痴情': 8, '烈': 5, '飘逸': 6, '智慧': 7, '谐趣': 4, '决绝': 5 },
+    coffee_cn: '锡兰红茶般浓郁开场，草莓果酱的甜美随后铺开，像盛唐夜宴最后一盏未凉的宫灯 · 埃塞俄比亚',
     quote_cn: '在天愿作比翼鸟，在地愿为连理枝。',
     quote_en: 'In heaven, may we be twin-flying birds. On earth, branches that share one root.',
     letter_cn: '你和唐明皇一样，有过权力的人。对自己有过的时刻，你比谁都清楚——那不是权力给的，是另一个人。',
@@ -49,30 +54,14 @@ window.ACTIVE_CHARACTERS = [
   },
 
   {
-    id: 'sunwukong',
-    image: 'portraits/孙悟空.png',
-    gender: 'male',
-    role_type: '武生 / 猴生',
-    name_cn: '孙悟空', name_en: 'Sun Wukong',
-    play_cn: '《大闹天宫》', play_en: 'Havoc in Heaven',
-    traits: { '痴情': 2, '烈': 10, '飘逸': 9, '智慧': 8, '谐趣': 9, '决绝': 9 },
-    quote_cn: '齐天大圣自家姓——天也敢闹，地也敢翻。',
-    quote_en: 'Great Sage Equal to Heaven — I dare upset heaven, and overturn earth.',
-    letter_cn: '你和孙悟空一样，是那种"先动手再讲规矩"的人。规矩不是你不懂——是你不服。但你最后会发现，自由不是闹出来的，是认下一个紧箍咒之后还在的那点东西。',
-    letter_en: 'Like Sun Wukong, you act first and explain later. It is not that you do not know the rules — you simply do not bow to them. In the end you will learn: freedom is not what you make by fighting, but what remains in you after the headband tightens.',
-    monologue_cn: '我跌过的跟头比谁都多——但没人能让我说一句"算了"。',
-    monologue_en: 'I have fallen more times than anyone — but no one has yet made me say "let it go."',
-    event_cn: '广府大剧院 · 7 月 5 日', event_en: 'Guangfu Grand Theatre · July 5'
-  },
-
-  {
     id: 'jiabaoyu',
     image: 'portraits/寶玉.png',
     gender: 'male',
-    role_type: '文武生',
+    role_type: '小生',
     name_cn: '贾宝玉', name_en: 'Jia Baoyu',
-    play_cn: '《红楼梦·焚稿》', play_en: 'Dream of the Red Chamber',
+    play_cn: '《红楼梦》', play_en: 'Dream of the Red Chamber',
     traits: { '痴情': 10, '烈': 4, '飘逸': 9, '智慧': 6, '谐趣': 5, '决绝': 4 },
+    coffee_cn: '白桃与花蜜香气缓缓舒展，不肯向世俗妥协的清甜里藏着一点孤傲的苦涩 · 巴拿马',
     quote_cn: '女儿是水做的骨肉——我看见的时候就知道了。',
     quote_en: 'Girls are made of water. I knew the moment I saw.',
     letter_cn: '你和贾宝玉一样，认得"美"，也认得"不公平"。你会为了一个人写一首不能给别人看的诗。世界忙着分对错，你忙着分懂不懂。',
@@ -86,34 +75,18 @@ window.ACTIVE_CHARACTERS = [
     id: 'liyi',
     image: 'portraits/李益.png',
     gender: 'male',
-    role_type: '文武生',
+    role_type: '小生',
     name_cn: '李益', name_en: 'Li Yi',
     play_cn: '《紫钗记》', play_en: 'The Purple Hairpin',
     traits: { '痴情': 7, '烈': 4, '飘逸': 7, '智慧': 8, '谐趣': 2, '决绝': 4 },
+    coffee_cn: '中深烘焙的坚果与可可气息缓慢沉淀，尾韵浮现雨后石板路般的微凉清新 · 危地马拉',
     quote_cn: '一钗在手，半生再寻。',
     quote_en: 'A hairpin in hand — half a life spent in the search.',
     letter_cn: '你和李益一样，会在事情过去很久之后才意识到自己有多在乎。世故不能消蚀的，是某些回忆里的清亮。',
     letter_en: 'Like Li Yi, you only realize how much you cared long after the moment has passed. The world dims much — but it cannot dull the brightness of certain memories.',
-    monologue_cn: '我赶不及当年的雨——但我赶上了这一夜。',
-    monologue_en: 'I could not catch the rain of that year — but I am here for this night.',
+    monologue_cn: '一钗在手，半生再寻。',
+    monologue_en: 'A hairpin in hand — half a life spent in the search.',
     event_cn: '南国剧场 · 6 月 1 日', event_en: 'Nanguo Theatre · June 1'
-  },
-
-  {
-    id: 'sudongpo',
-    image: 'portraits/東坡.png',
-    gender: 'male',
-    role_type: '文生 / 老生',
-    name_cn: '苏东坡', name_en: 'Su Dongpo',
-    play_cn: '《赤壁怀古》', play_en: 'Meditations on Red Cliff',
-    traits: { '痴情': 5, '烈': 5, '飘逸': 10, '智慧': 10, '谐趣': 8, '决绝': 6 },
-    quote_cn: '大江东去，浪淘尽——千古风流人物。',
-    quote_en: 'The great river flows east; its waves wash away — a thousand years of brilliant men.',
-    letter_cn: '你和苏东坡一样，在被贬的时候，比得意的人活得更宽。世界推过你几次，但你回头不是恨——是写了一首诗。',
-    letter_en: 'Like Su Dongpo, you live more broadly in exile than others do in glory. The world has pushed you back more than once — and your answer is not bitterness, but a poem.',
-    monologue_cn: '少年时怕风浪——后来才明白，风浪里写出来的字，最像我。',
-    monologue_en: 'In youth I feared the storm. Only later did I learn — the words I write inside the storm are the ones that look most like me.',
-    event_cn: '南国剧场 · 7 月 14 日', event_en: 'Nanguo Theatre · July 14'
   },
 
   {
@@ -122,14 +95,15 @@ window.ACTIVE_CHARACTERS = [
     gender: 'male',
     role_type: '小生',
     name_cn: '许仙', name_en: 'Xu Xian',
-    play_cn: '《白蛇传·情》', play_en: 'Legend of the White Snake',
+    play_cn: '《白蛇传·情》', play_en: 'The Fairy Tale of The White Snake',
     traits: { '痴情': 8, '烈': 3, '飘逸': 5, '智慧': 4, '谐趣': 3, '决绝': 4 },
+    coffee_cn: '雪莉桶熟果香轻轻展开，威士忌般清醒而克制，像西湖细雨中的一把旧纸伞 · 印度尼西亚',
     quote_cn: '我不问你来路——只问你愿不愿意留下。',
     quote_en: 'I ask not where you came from — only whether you will stay.',
     letter_cn: '你和许仙一样，是会"先信任，再去想"的那种人。世故的人笑你"傻"，但真的可贵的事都是这样开始的：一个人先伸出手，另一个人才敢把伞撑给他。',
     letter_en: 'Like Xu Xian, you are one who trusts first and thinks later. The worldly call this foolish — but everything precious begins this way: one person reaches out, and only then does the other dare to share the umbrella.',
-    monologue_cn: '我若早知道，就会更早地说"无论如何"。',
-    monologue_en: 'Had I known earlier, I would have said "no matter what" sooner.',
+    monologue_cn: '人若無情不如妖，只要有情妖亦人。',
+    monologue_en: 'Without love, a person is less than a demon — but with love, even a demon becomes human.',
     event_cn: '广府大剧院 · 6 月 5 日', event_en: 'Guangfu Grand Theatre · June 5'
   },
 
@@ -141,6 +115,7 @@ window.ACTIVE_CHARACTERS = [
     name_cn: '赵云', name_en: 'Zhao Yun',
     play_cn: '《长阪坡》', play_en: 'The Battle of Changban',
     traits: { '痴情': 5, '烈': 8, '飘逸': 5, '智慧': 7, '谐趣': 2, '决绝': 9 },
+    coffee_cn: '黑巧克力与烘烤坚果构成利落骨架，收尾带着山风般干净的草本气息 · 肯尼亚',
     quote_cn: '怀中阿斗一身白，万军不能挡。',
     quote_en: 'A child in my arms, my robe still white — and ten thousand cannot bar my way.',
     letter_cn: '你和赵云一样，是个能在乱军里把该护的人护到底的人。漂亮的不是你的招式——是你护着的那个人，从你身边走出来时的眼神。',
@@ -150,41 +125,25 @@ window.ACTIVE_CHARACTERS = [
     event_cn: '太和剧院 · 7 月 18 日', event_en: 'Taihe Theatre · July 18'
   },
 
-  {
-    id: 'zhongkui',
-    image: 'portraits/钟馗.png',
-    gender: 'male',
-    role_type: '净 / 大花脸',
-    name_cn: '钟馗', name_en: 'Zhong Kui',
-    play_cn: '《钟馗嫁妹》', play_en: 'Zhong Kui Marries Off His Sister',
-    traits: { '痴情': 3, '烈': 9, '飘逸': 4, '智慧': 7, '谐趣': 5, '决绝': 10 },
-    quote_cn: '我相貌可怖，但心地比你们都干净。',
-    quote_en: 'My face frightens you — but my heart is cleaner than yours.',
-    letter_cn: '你和钟馗一样，被人看见的第一眼总是"硬"。但真见过你的人都知道——你的硬，是替亲近的人挡的。世界让你长出来一副凶相，是因为你护着的东西足够柔软。',
-    letter_en: 'Like Zhong Kui, what people see first in you is the hardness. But those who know you understand — that hardness is shelter for the soft thing you guard. The world made you fierce because what you protect is fragile.',
-    monologue_cn: '我吓走的不是我妹妹——是该来吓她的那些。',
-    monologue_en: 'It is not my sister I drive away — it is what would have come to frighten her.',
-    event_cn: '太和剧院 · 8 月 2 日', event_en: 'Taihe Theatre · August 2'
-  },
-
   /* ============================================================ */
   /* ===                   女 · FEMALE (6)                    === */
   /* ============================================================ */
 
   {
-    id: 'sanniang',
+    id: 'longnvsanniang',
     image: 'portraits/三娘.png',
     gender: 'female',
-    role_type: '正印花旦 / 苦旦',
-    name_cn: '王春娥', name_en: 'Wang Chun-e (San-niang)',
-    play_cn: '《三娘教子》', play_en: 'San-niang Teaches Her Son',
-    traits: { '痴情': 7, '烈': 8, '飘逸': 3, '智慧': 8, '谐趣': 2, '决绝': 9 },
-    quote_cn: '一织一断，一断一接——夫君不在，这家由我来撑。',
-    quote_en: 'A weave, a snap. A snap, a mend. With my husband gone, this house I will hold up myself.',
-    letter_cn: '你和三娘一样，没在意过"该不该是你"。该撑的就撑——把日子织成布，把孩子教成人。你不喊苦，因为喊苦的力气你都用来过日子了。',
-    letter_en: 'Like San-niang, you have never wasted breath on whether it should have been you. What needs holding, you hold — weaving days into cloth, shaping the child into a person. You do not cry of hardship; the strength to cry, you spend on living.',
-    monologue_cn: '我不想成什么模样——我只想这孩子，长成一个能挑的人。',
-    monologue_en: 'I do not wish to become anything in particular — I only wish for this child to grow into one who can carry.',
+    role_type: '正印花旦',
+    name_cn: '龙女三娘', name_en: 'Long Nu San-niang',
+    play_cn: '《柳毅传书》', play_en: 'The Dragon Girl\'s Letter',
+    traits: { '痴情': 8, '烈': 4, '飘逸': 9, '智慧': 7, '谐趣': 3, '决绝': 6 },
+    coffee_cn: '柑橘与白花香明亮绽放，如晨光映照海面时最纯净的一阵微风 · 哥斯达黎加',
+    quote_cn: '世人爭羨游仙夢，誰識仙宮有苦衷。',
+    quote_en: 'The world envies immortal dreams — but who understands the burdens within the heavenly palace.',
+    letter_cn: '龙女三娘源于唐代李朝威的《柳毅传》，至今仍是粤剧"春班"最常演的经典。善良是她的本色，善缘是她的命运，善终是她的花好月圆。',
+    letter_en: 'Long Nu San-niang originates from Li Chaowei\'s Tang dynasty tale. To this day, she remains one of the most beloved figures in Cantonese opera. Kindness is her nature, providence is her fortune, and a tender ending is the flower that blooms for her.',
+    monologue_cn: '世人爭羨游仙夢。',
+    monologue_en: 'The world envies the immortal dream.',
     event_cn: '南国剧场 · 7 月 1 日', event_en: 'Nanguo Theatre · July 1'
   },
 
@@ -194,8 +153,9 @@ window.ACTIVE_CHARACTERS = [
     gender: 'female',
     role_type: '正印花旦',
     name_cn: '杨贵妃', name_en: 'Yang Guifei',
-    play_cn: '《长生殿》', play_en: 'The Palace of Eternal Life',
+    play_cn: '《贵妃醉酒》', play_en: 'The Drunken Beauty',
     traits: { '痴情': 9, '烈': 6, '飘逸': 8, '智慧': 5, '谐趣': 5, '决绝': 6 },
+    coffee_cn: '荔枝花香与莓果酸甜交织层叠，仿佛长安春夜盛开的千树繁花 · 埃塞俄比亚',
     quote_cn: '七月七日长生殿，夜半无人私语时。',
     quote_en: 'On the seventh of the seventh, in the Palace of Eternal Life — at midnight, when none could overhear, we spoke.',
     letter_cn: '你和杨贵妃一样，活得明亮、爱得明亮、连忧愁也是明亮的。世人爱你的明亮，但他们少有人耐心看你怎么暗下去。',
@@ -206,19 +166,20 @@ window.ACTIVE_CHARACTERS = [
   },
 
   {
-    id: 'bainiangzi',
+    id: 'baisuzhen',
     image: 'portraits/白娘子.png',
     gender: 'female',
     role_type: '正印花旦',
-    name_cn: '白娘子', name_en: 'Lady White (Bai Suzhen)',
-    play_cn: '《白蛇传·情》', play_en: 'Legend of the White Snake',
+    name_cn: '白素貞', name_en: 'Bai Suzhen',
+    play_cn: '《白蛇传·情》', play_en: 'The Fairy Tale of The White Snake',
     traits: { '痴情': 9, '烈': 8, '飘逸': 8, '智慧': 9, '谐趣': 2, '决绝': 9 },
+    coffee_cn: '茉莉与蜜桃气息温柔相依，柔软之下藏着如断桥春水般悠长的力量 · 牙买加',
     quote_cn: '千年修炼，只为这一场凡间。',
     quote_en: 'A thousand years of cultivation — for this single mortal life.',
-    letter_cn: '你和白娘子一样，所有的智慧、修为、力量，都肯为一个人放下。但放下不是软弱——必要时你也会断桥之上，让天地都听见。',
-    letter_en: 'Like Lady White, all your wisdom, all your power, you would set aside for one person. But setting aside is not weakness — when needed, you stand on the broken bridge and let heaven and earth hear you.',
-    monologue_cn: '我不是来求情的——我来履约。',
-    monologue_en: 'I have not come to plead — I have come to keep my word.',
+    letter_cn: '你和白素贞一样，所有的智慧、修为、力量，都肯为一个人放下。但放下不是软弱——必要时你也会断桥之上，让天地都听见。',
+    letter_en: 'Like Bai Suzhen, all your wisdom, all your power, you would set aside for one person. But setting aside is not weakness — when needed, you stand on the broken bridge and let heaven and earth hear you.',
+    monologue_cn: '誰的掛牽，永駐斷橋邊。',
+    monologue_en: 'Whose longing lingers forever at the broken bridge.',
     event_cn: '广府大剧院 · 6 月 5 日', event_en: 'Guangfu Grand Theatre · June 5'
   },
 
@@ -230,12 +191,13 @@ window.ACTIVE_CHARACTERS = [
     name_cn: '花蕊夫人', name_en: 'Lady Huarui',
     play_cn: '《花蕊夫人》', play_en: 'Lady Huarui',
     traits: { '痴情': 6, '烈': 9, '飘逸': 7, '智慧': 9, '谐趣': 3, '决绝': 8 },
+    coffee_cn: '成熟热带水果的丰沛甜感徐徐展开，蜂蜜般华贵却不失锋芒 · 巴西',
     quote_cn: '十四万人齐解甲——更无一个是男儿。',
     quote_en: 'A hundred and forty thousand laid down their armor — and not a single one was a man.',
-    letter_cn: '你和花蕊夫人一样，亡了国之后还能写诗。比国土先丢的，是别人的骨气；比骨气后丢的，是你的笔。你写下来不是为了报复——是为了让后来人知道，有人记得。',
-    letter_en: 'Like Lady Huarui, even after the kingdom fell you could still write a poem. What fell before the land was others\' spine; what falls last is your pen. You write not for revenge — but so that those after you will know: someone remembered.',
-    monologue_cn: '宫墙塌了——但有一行字是塌不了的。',
-    monologue_en: 'The palace walls have fallen — but a single line of writing cannot.',
+    letter_cn: '被誉为"蜀中才女"花蕊夫人。新版粤剧表演者增加人物内心独白的唱段，更灵活自然地雕细出花蕊夫人的贵气、刚烈不屈与柔情。',
+    letter_en: 'Celebrated as the literary talent of Shu, Lady Huarui\'s Cantonese opera retelling adds interior monologue arias — carving out her aristocratic bearing, fierce pride, and tender feeling with greater nuance.',
+    monologue_cn: '十四万人齐解甲——更无一个是男儿。',
+    monologue_en: 'A hundred and forty thousand laid down their armor — and not a single one was a man.',
     event_cn: '南国剧场 · 7 月 28 日', event_en: 'Nanguo Theatre · July 28'
   },
 
@@ -243,16 +205,17 @@ window.ACTIVE_CHARACTERS = [
     id: 'axiu',
     image: 'portraits/阿琇.png',
     gender: 'female',
-    role_type: '二帮花旦',
+    role_type: '花旦',
     name_cn: '阿琇', name_en: 'A-xiu',
     play_cn: '《阿琇》', play_en: 'A-xiu',
     traits: { '痴情': 8, '烈': 5, '飘逸': 8, '智慧': 6, '谐趣': 5, '决绝': 4 },
+    coffee_cn: '云南小粒咖啡特有的坚果香缓缓升起，像旧时南音唱腔里的温柔回响 · 中国',
     quote_cn: '你给我一支簪——我就敢说，这一夜是真的。',
     quote_en: 'You gave me one hairpin — and I dare to say, this one night is real.',
-    letter_cn: '你和阿琇一样，不要那种轰轰烈烈的爱。一句"我看见你了"，已经够你记很久。世故的人觉得这种安静的喜欢"不够"——其实你才是知道喜欢是什么的人。',
-    letter_en: 'Like A-xiu, you do not need a love that thunders. One sentence — "I saw you" — and you can carry it a long time. The worldly think this quiet kind of caring is "not enough." Truly, you are the one who knows what caring is.',
-    monologue_cn: '你说我等了你太久——我没有等。我是在那里。',
-    monologue_en: 'You say I waited too long for you — I did not wait. I was simply there.',
+    letter_cn: '阿琇是广东民间传说中，为"鬼才"状元伦文叙的理想化伴侣形象。粤剧表演中阿琇演绎的南音唱段，便是诉说阿琇的身世和对伦文叙的真情。',
+    letter_en: 'A-xiu is the idealized companion of the brilliant scholar Lun Wen-sui in Cantonese folk legend. In Cantonese opera, her Nanyin arias tell of her origins and the depth of her feeling for him.',
+    monologue_cn: '是幻，是夢，是真？',
+    monologue_en: 'Is it illusion, is it dream, is it real?',
     event_cn: '南国剧场 · 6 月 26 日', event_en: 'Nanguo Theatre · June 26'
   },
 
@@ -264,6 +227,7 @@ window.ACTIVE_CHARACTERS = [
     name_cn: '林黛玉', name_en: 'Lin Daiyu',
     play_cn: '《红楼梦·葬花》', play_en: 'Dream of the Red Chamber',
     traits: { '痴情': 10, '烈': 3, '飘逸': 10, '智慧': 8, '谐趣': 2, '决绝': 5 },
+    coffee_cn: '红醋栗与莓果酸香层层递进，细腻而绵长，如花瓣落入水面荡开的轻愁 · 卢旺达',
     quote_cn: '花落人亡两不知——我葬的不是花，是我自己。',
     quote_en: 'The flowers fall and the person passes, neither knowing the other — I am not burying flowers, I am burying myself.',
     letter_cn: '你和林黛玉一样，是会因为一句话失眠的人。世界粗，你偏偏细。这不是脆弱——是你愿意把"在乎"留在身上，不甩开。',
