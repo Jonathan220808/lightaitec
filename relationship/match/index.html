@@ -212,6 +212,32 @@
     .btn-row { display:flex; flex-direction:column; gap:10px; }
     a.btn { text-decoration:none; display:flex; align-items:center; justify-content:center; }
 
+    /* ── 联机房间 ── */
+    .mp-input {
+      width:100%; padding:13px 16px; border-radius:12px;
+      border:1.5px solid rgba(139,130,149,.25); font-size:15px;
+      font-family:inherit; background:var(--card); color:var(--text);
+      outline:none; transition:border-color .2s; margin-bottom:10px; display:block;
+    }
+    .mp-input:focus { border-color:var(--accent); }
+    .mp-input::placeholder { color:rgba(139,130,149,.5); }
+    .mp-divider { display:flex; align-items:center; gap:10px; margin:14px 0; }
+    .mp-divider-line { flex:1; height:1px; background:rgba(139,130,149,.2); }
+    .mp-divider span { font-size:12px; color:var(--muted); }
+    .mp-error { font-size:13px; color:#C0392B; min-height:18px; margin-top:6px; text-align:center; }
+    .mp-code-box { background:var(--card); border-radius:20px; padding:22px; text-align:center; margin-bottom:18px; box-shadow:0 2px 16px rgba(80,50,110,.07); }
+    .mp-code-label { font-size:11px; color:var(--muted); letter-spacing:.1em; margin-bottom:6px; }
+    .mp-code-num { font-family:'Noto Serif SC',serif; font-size:50px; font-weight:900; color:var(--accent); letter-spacing:.12em; }
+    .mp-code-hint { font-size:12px; color:var(--muted); margin-top:6px; }
+    .mp-player-list { background:var(--card); border-radius:14px; padding:14px 18px; margin-bottom:16px; box-shadow:0 1px 10px rgba(80,50,110,.06); }
+    .mp-pl-title { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.08em; margin-bottom:10px; }
+    .mp-pl-item { display:flex; align-items:center; padding:7px 0; border-bottom:1px solid rgba(139,130,149,.1); font-size:14px; }
+    .mp-pl-item:last-child { border-bottom:none; }
+    .mp-pl-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); margin-right:10px; flex-shrink:0; }
+    .mp-pl-tag { margin-left:auto; font-size:11px; color:var(--muted); }
+    .mp-wait { font-size:14px; color:var(--muted); text-align:center; padding:14px; line-height:1.7; }
+    .mp-badge { display:inline-block; font-size:11px; background:var(--soft); color:var(--accent); font-weight:700; padding:2px 10px; border-radius:20px; letter-spacing:.06em; }
+
     /* ── 灯箱 ── */
     .lightbox {
       position:fixed; inset:0; z-index:999;
@@ -304,14 +330,15 @@
     <div class="ex-leg"><span class="ex-dot" style="background:#7BBF8A"></span>绿 → 你③、对方④ · <b>同图不同位 +1</b></div>
     <div class="ex-total">本轮得分 · <span style="font-size:16px">4</span> 分</div>
   </div>
-  <p class="kw-note">💡 多人一起玩：大家各自打开游戏，统一用其中<b>一台手机</b>上的关键词就好——谁的词都行，换到大家都喜欢的那个。</p>
-  <button class="btn btn-primary" onclick="startGame()">开始</button>
+  <button class="btn btn-primary" onclick="startGame()">传着玩（一台手机轮流）</button>
+  <button class="btn btn-ghost" style="margin-top:10px;" onclick="openMultiplayer()">🌐 联机玩（各用各的手机 · 线上也能玩）</button>
 </div>
 
 <!-- ② 关键词屏 -->
 <div id="keywordScreen" class="screen">
   <div class="topbar">
     <button class="back" onclick="goStart()">← 重新开始</button>
+    <span id="mpKwBadge" style="display:none;" class="mp-badge">🌐 联机中</span>
     <a href="../" class="home-link-tiny">首页</a>
   </div>
   <p class="kw-hint">本轮关键词</p>
@@ -399,6 +426,48 @@
   </div>
 </div>
 
+<!-- ⑥ 联机房间屏 -->
+<div id="matchRoomScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="mpLeave()">← 返回</button>
+    <a href="../" class="home-link-tiny">首页</a>
+  </div>
+
+  <!-- 第一步：输入昵称 -->
+  <div id="mpStep1">
+    <p class="start-label">联机 · 知己成双</p>
+    <h1 style="font-family:'Noto Serif SC',serif;font-size:30px;font-weight:900;margin-bottom:16px;">多台手机<br>同一个词</h1>
+    <input class="mp-input" id="mpNameInput" type="text" placeholder="先输入你的昵称（最多12字）" maxlength="12">
+    <button class="btn btn-primary" onclick="mpConfirmName()">确认昵称</button>
+    <p class="mp-error" id="mpError"></p>
+  </div>
+
+  <!-- 第二步：创建或加入（确认昵称后显示） -->
+  <div id="mpStep2" style="display:none;">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">你好，<b id="mpConfirmedName" style="color:var(--text)"></b> 👋</p>
+    <button class="btn btn-primary" onclick="mpCreateRoom()">创建房间（我来主持）</button>
+    <div class="mp-divider"><div class="mp-divider-line"></div><span>或加入已有房间</span><div class="mp-divider-line"></div></div>
+    <input class="mp-input" id="mpCodeInput" type="text" placeholder="输入4位房间号" maxlength="4" pattern="[0-9]*" inputmode="numeric">
+    <button class="btn btn-ghost" onclick="mpJoinRoom()">加入房间</button>
+    <p class="mp-error" id="mpJoinError"></p>
+  </div>
+
+  <!-- 等待室 -->
+  <div id="mpLobby" style="display:none;">
+    <div class="mp-code-box">
+      <p class="mp-code-label">房间号</p>
+      <p class="mp-code-num" id="mpCodeDisplay">—</p>
+      <p class="mp-code-hint">把号码告诉朋友，大家都进来</p>
+    </div>
+    <div class="mp-player-list">
+      <p class="mp-pl-title">已加入 <span id="mpPlayerCount">0</span> 人</p>
+      <div id="mpPlayerItems"></div>
+    </div>
+    <button class="btn btn-primary" id="mpPickKwBtn" style="display:none;" onclick="mpPickKeyword()">✨ 抽取关键词，开始！</button>
+    <p class="mp-wait" id="mpWaitMsg" style="display:none;">等待主持人抽取关键词…<br>关键词出来后，大家会同时看到</p>
+  </div>
+</div>
+
 <!-- 灯箱 -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <img id="lightboxImg" src="" alt="">
@@ -459,6 +528,10 @@ function pickNewKeyword() {
   usedKeywords.add(currentKeyword);
 }
 function changeKeyword() {
+  if (inMp) {
+    if (mpIsHost) mpPickKeyword(); // 联机主持人：推送新词给所有人
+    return; // 非主持人：点击无效
+  }
   usedKeywords.delete(currentKeyword);
   let avail = KEYWORDS.filter(k => !usedKeywords.has(k));
   if (!avail.length) { avail = KEYWORDS.filter(k => k !== currentKeyword); if (!avail.length) return; }
@@ -642,7 +715,126 @@ function renderResult() {
   });
 }
 
-/* ---------- 灯箱 ---------- */
+/* ========== 联机模式 ========== */
+const MP_WS_URL = 'wss://lightaitec.com/relationship/match/ws';
+let inMp = false, mpWs = null, mpMyId = null, mpMyName = '', mpIsHost = false;
+
+function openMultiplayer() {
+  document.getElementById('mpStep1').style.display = 'block';
+  document.getElementById('mpStep2').style.display = 'none';
+  document.getElementById('mpLobby').style.display = 'none';
+  document.getElementById('mpError').textContent = '';
+  showScreen('matchRoomScreen');
+}
+
+function mpConfirmName() {
+  const name = document.getElementById('mpNameInput').value.trim();
+  if (!name) { document.getElementById('mpError').textContent = '请输入昵称'; return; }
+  mpMyName = name;
+  document.getElementById('mpError').textContent = '';
+  document.getElementById('mpConfirmedName').textContent = mpMyName;
+  document.getElementById('mpStep1').style.display = 'none';
+  document.getElementById('mpStep2').style.display = 'block';
+}
+
+function mpConnect(onOpen) {
+  mpWs = new WebSocket(MP_WS_URL);
+  mpWs.onopen = () => { if (onOpen) onOpen(); };
+  mpWs.onmessage = e => mpHandleMsg(JSON.parse(e.data));
+  mpWs.onclose = () => {};
+  mpWs.onerror = () => {};
+}
+
+function mpSend(msg) {
+  if (mpWs && mpWs.readyState === 1) mpWs.send(JSON.stringify(msg));
+}
+
+function mpCreateRoom() {
+  mpIsHost = true;
+  mpConnect(() => mpSend({ type: 'create_room', playerName: mpMyName }));
+}
+
+function mpJoinRoom() {
+  const code = document.getElementById('mpCodeInput').value.trim();
+  if (!code || code.length !== 4) { document.getElementById('mpJoinError').textContent = '请输入4位房间号'; return; }
+  document.getElementById('mpJoinError').textContent = '';
+  mpConnect(() => mpSend({ type: 'join_room', roomCode: code, playerName: mpMyName }));
+}
+
+function mpLeave() {
+  if (mpWs) { mpWs.close(); mpWs = null; }
+  inMp = false; mpIsHost = false;
+  showScreen('startScreen');
+}
+
+function mpHandleMsg(msg) {
+  switch (msg.type) {
+    case 'room_created':
+      mpMyId = msg.state.players[0].id;
+      mpIsHost = true; inMp = true;
+      mpShowLobby(msg.state);
+      break;
+    case 'joined':
+    case 'rejoined':
+      inMp = true;
+      mpMyId = msg.state.players.find(p => p.name === mpMyName)?.id;
+      mpIsHost = mpMyId === msg.state.hostId;
+      mpShowLobby(msg.state);
+      break;
+    case 'player_joined':
+    case 'player_back':
+    case 'player_left':
+      mpRenderLobby(msg.state);
+      break;
+    case 'keyword_sync':
+      // 主持人推送的关键词 → 所有人跳到关键词屏
+      currentKeyword = msg.keyword;
+      usedKeywords.add(msg.keyword);
+      renderKeyword();
+      document.getElementById('mpKwBadge').style.display = 'inline-block';
+      // 非主持人：隐藏"换一个"按钮
+      const changeBtn = document.querySelector('#keywordScreen .change-link');
+      if (changeBtn) changeBtn.style.display = mpIsHost ? 'block' : 'none';
+      showScreen('keywordScreen');
+      break;
+    case 'error':
+      document.getElementById('mpJoinError').textContent = msg.message;
+      break;
+  }
+}
+
+function mpShowLobby(state) {
+  document.getElementById('mpStep2').style.display = 'none';
+  document.getElementById('mpLobby').style.display = 'block';
+  mpRenderLobby(state);
+}
+
+function mpRenderLobby(state) {
+  document.getElementById('mpCodeDisplay').textContent = state.code;
+  document.getElementById('mpPlayerCount').textContent = state.players.length;
+  const list = document.getElementById('mpPlayerItems');
+  list.innerHTML = '';
+  state.players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'mp-pl-item';
+    div.innerHTML = `<span class="mp-pl-dot"></span>
+      <span>${p.name}${p.id === mpMyId ? ' (我)' : ''}</span>
+      <span class="mp-pl-tag">${i === 0 ? '主持人' : ''}</span>`;
+    list.appendChild(div);
+  });
+  document.getElementById('mpPickKwBtn').style.display = mpIsHost ? 'block' : 'none';
+  document.getElementById('mpWaitMsg').style.display = mpIsHost ? 'none' : 'block';
+}
+
+function mpPickKeyword() {
+  let avail = KEYWORDS.filter(k => !usedKeywords.has(k));
+  if (!avail.length) { usedKeywords.clear(); avail = [...KEYWORDS]; }
+  const kw = avail[Math.floor(Math.random() * avail.length)];
+  usedKeywords.add(kw);
+  mpSend({ type: 'set_keyword', keyword: kw });
+}
+
+/* ========== 灯箱 ========== */
 function openLightbox(src) {
   document.getElementById('lightboxImg').src = src;
   document.getElementById('lightbox').classList.add('active');
