@@ -1094,7 +1094,20 @@
       feelingWs.onopen=()=>feelingSend({type:'join_room',roomCode:c,...feelingSession.identityPayload(feelingMyName)});
       feelingWs.onmessage=e=>feelingMpMsg(JSON.parse(e.data));feelingWs.onerror=()=>{};
     }
-    function feelingMpEnter(){feelingInMp=true;closeFeelingMp();feelingMpUpdateCtrl();}
+    function feelingMpEnter(){
+      feelingInMp=true;
+      closeFeelingMp();
+      feelingMpUpdateCtrl();
+      // 联机模式：玩家A刷新时同步卡牌给所有人
+      refreshAllBtn.onclick=()=>{
+        if(!feelingMpIsSubject){showToast('只有玩家A才能刷新题库');return;}
+        if(gameState.phase!=='playerA'){showToast('只能在选择前刷新');return;}
+        generateCardSet();
+        renderCards();
+        showToast('已刷新情绪词，同步中…');
+        feelingSend({type:'guess_round_data',roundData:{cards:gameState.currentCards}});
+      };
+    }
 
     function feelingMpMsg(msg){
       if(msg.type==='room_created'){feelingMyId=msg.state.players[0].id;feelingMpShowLobby(msg.state);}
@@ -1164,7 +1177,6 @@
         gameState.playerGuesses=[];
         document.getElementById('resultPanel').innerHTML='';
         document.getElementById('resultPanel').classList.add('hidden');
-        // F-4: 重置 confirmBtn.onclick，防止下一轮猜测者点确认时误发 reveal
         confirmBtn.classList.add('hidden');
         confirmBtn.textContent='确认选择';
         confirmBtn.onclick=handleConfirm;
@@ -1172,8 +1184,11 @@
         startBtn.innerText='开始游戏';
         startBtn.onclick=startGame;
         centerStatus.innerText='Waiting…';
-        // F-2: 不在此处生成卡牌！等新的 guess_round_start 到来再由主角同步过来
-        // generateCardSet() 和 renderCards() 刻意删除
+        // 清除旧卡牌，避免双方看到不同状态
+        document.querySelectorAll('.card').forEach(c=>c.remove());
+        // 显示 countScreen，让「这轮我来」按钮重新可见（它在 countScreen 内部）
+        document.getElementById('countScreen').style.display='flex';
+        document.getElementById('modeTag').classList.add('hidden');
         feelingMpUpdateCtrl();
       }
       else if(msg.type==='error'){document.getElementById('feelingMpJErr').textContent=msg.message;}
@@ -1219,8 +1234,7 @@
     function feelingMpVolunteer(){
       feelingMpIsSubject=true;
       feelingSend({type:'guess_volunteer'});
-      feelingMpUpdateCtrl('me');
-      startWithCount(2);
+      startWithCount(2); // 隐藏 countScreen，生成新卡牌，发送 guess_round_data
     }
   </script>
 </body>

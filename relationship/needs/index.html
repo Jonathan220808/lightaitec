@@ -800,15 +800,17 @@ function needsMpMsg(msg) {
   }
   else if(msg.type==='guess_reset'){
     needsMpIsSubject=false;
-    // N-3: 所有端都回到场景初始状态
     heartA={}; heartB={};
     isPhaseA=true;
     currentScenario=null;
     currentNeeds=[];
-    // 重置 confirmBtn，防止下一轮误发 guess_reveal（N-3 附带）
     const cb=document.getElementById('confirmBtn');
     if(cb){ cb.textContent='确认押注'; cb.disabled=true; cb.onclick=confirmBet; }
-    showScreen('startScreen');
+    // 显示场景屏（而不是 startScreen）让「这轮我来」按钮可见
+    // mpScenarioCtrl 在 scenarioScreen 内，必须显示 scenarioScreen 才能看到按钮
+    document.getElementById('scenarioText').textContent='等待本轮玩家A来选择场景…';
+    document.getElementById('scenarioBetABtn').style.display='none';
+    showScreen('scenarioScreen');
     needsMpUpdateScenario();
   }
   else if(msg.type==='error'){needsSession.showConnectionStatus('failed',msg.message||'连接失败，请重试');if(needsRetryRestoreAfterNameCollision(msg.message))return;document.getElementById('needsMpJErr').textContent=msg.message;}
