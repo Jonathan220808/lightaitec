@@ -474,6 +474,7 @@
   <span class="lightbox-hint">点击任意处关闭</span>
 </div>
 
+<script src="../shared/relationship-session.js"></script>
 <script>
 const IMAGES = ["img-01.jpg","img-02.jpg","img-03.jpg","img-04.jpg","img-05.jpg","img-06.jpg","img-07.jpg","img-08.jpg","img-09.jpg","img-10.jpg","img-11.jpg","img-12.jpg","img-13.jpg","img-14.jpg","img-15.jpg","img-16.jpg","img-17.jpg","img-18.jpg","img-19.jpg","img-20.jpg","img-21.jpg","img-22.jpg","img-23.jpg","img-24.jpg","img-25.jpg","img-26.jpg","img-27.jpg","img-28.jpg","img-29.jpg","img-30.jpg"];
 
@@ -717,20 +718,27 @@ function renderResult() {
 
 /* ========== 联机模式 ========== */
 const MP_WS_URL = 'wss://lightaitec.com/relationship/match/ws';
-let inMp = false, mpWs = null, mpMyId = null, mpMyName = '', mpIsHost = false;
+const MP_GAME_KEY = 'match';
+const mpSession = window.RelationshipSession;
+let inMp = false, mpWs = null, mpMyId = null, mpMyName = '', mpIsHost = false, mpState = null, mpIntentionalClose = false, mpRestoreRoomCode = '', mpRestoreRetryCount = 0;
 
 function openMultiplayer() {
+  mpRestoreName();
   document.getElementById('mpStep1').style.display = 'block';
   document.getElementById('mpStep2').style.display = 'none';
   document.getElementById('mpLobby').style.display = 'none';
   document.getElementById('mpError').textContent = '';
+  if (mpMyName) {
+    document.getElementById('mpStep1').style.display = 'none';
+    document.getElementById('mpStep2').style.display = 'block';
+  }
   showScreen('matchRoomScreen');
 }
 
 function mpConfirmName() {
   const name = document.getElementById('mpNameInput').value.trim();
   if (!name) { document.getElementById('mpError').textContent = '请输入昵称'; return; }
-  mpMyName = name;
+  mpMyName = mpSession.saveNickname(name).nickname;
   document.getElementById('mpError').textContent = '';
   document.getElementById('mpConfirmedName').textContent = mpMyName;
   document.getElementById('mpStep1').style.display = 'none';
@@ -738,11 +746,22 @@ function mpConfirmName() {
 }
 
 function mpConnect(onOpen) {
+  mpIntentionalClose = false;
   mpWs = new WebSocket(MP_WS_URL);
   mpWs.onopen = () => { if (onOpen) onOpen(); };
   mpWs.onmessage = e => mpHandleMsg(JSON.parse(e.data));
-  mpWs.onclose = () => {};
+  mpWs.onclose = () => {
+    if (!mpIntentionalClose && mpState?.code) {
+      mpSession.showConnectionStatus('reconnecting', '正在重新连接...');
+      setTimeout(mpReconnect, 2000);
+    }
+  };
   mpWs.onerror = () => {};
+}
+
+function mpReconnect() {
+  if (!mpState?.code || !mpMyName) return;
+  mpConnect(() => mpSend({ type: 'join_room', roomCode: mpState.code, ...mpSession.identityPayload(mpMyName) }));
 }
 
 function mpSend(msg) {
@@ -751,19 +770,21 @@ function mpSend(msg) {
 
 function mpCreateRoom() {
   mpIsHost = true;
-  mpConnect(() => mpSend({ type: 'create_room', playerName: mpMyName }));
+  mpConnect(() => mpSend({ type: 'create_room', ...mpSession.identityPayload(mpMyName) }));
 }
 
 function mpJoinRoom() {
   const code = document.getElementById('mpCodeInput').value.trim();
   if (!code || code.length !== 4) { document.getElementById('mpJoinError').textContent = '请输入4位房间号'; return; }
   document.getElementById('mpJoinError').textContent = '';
-  mpConnect(() => mpSend({ type: 'join_room', roomCode: code, playerName: mpMyName }));
+  mpConnect(() => mpSend({ type: 'join_room', roomCode: code, ...mpSession.identityPayload(mpMyName) }));
 }
 
 function mpLeave() {
+  mpIntentionalClose = true;
+  mpSession.clearRoom(MP_GAME_KEY);
   if (mpWs) { mpWs.close(); mpWs = null; }
-  inMp = false; mpIsHost = false;
+  inMp = false; mpIsHost = false; mpState = null;
   showScreen('startScreen');
 }
 
@@ -772,6 +793,8 @@ function mpHandleMsg(msg) {
     case 'room_created':
       mpMyId = msg.state.players[0].id;
       mpIsHost = true; inMp = true;
+      mpState = msg.state;
+      mpRememberRoom();
       mpShowLobby(msg.state);
       break;
     case 'joined':
@@ -779,11 +802,15 @@ function mpHandleMsg(msg) {
       inMp = true;
       mpMyId = msg.state.players.find(p => p.name === mpMyName)?.id;
       mpIsHost = mpMyId === msg.state.hostId;
+      mpState = msg.state;
+      mpRememberRoom();
+      mpSession.showConnectionStatus('restored', '已回到房间');
       mpShowLobby(msg.state);
       break;
     case 'player_joined':
     case 'player_back':
     case 'player_left':
+      mpState = msg.state;
       mpRenderLobby(msg.state);
       break;
     case 'keyword_sync':
@@ -798,9 +825,34 @@ function mpHandleMsg(msg) {
       showScreen('keywordScreen');
       break;
     case 'error':
+      mpSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
+      if (mpRetryRestoreAfterNameCollision(msg.message)) break;
       document.getElementById('mpJoinError').textContent = msg.message;
       break;
   }
+}
+
+function mpRetryRestoreAfterNameCollision(message) {
+  if (!mpRestoreRoomCode || !mpSession.isRetryableRestoreError(message) || mpRestoreRetryCount >= 5) return false;
+  mpRestoreRetryCount += 1;
+  mpSession.showConnectionStatus('reconnecting', 'Waiting for previous connection...');
+  setTimeout(() => {
+    mpConnect(() => mpSend({ type: 'join_room', roomCode: mpRestoreRoomCode, ...mpSession.identityPayload(mpMyName) }));
+  }, 900 + mpRestoreRetryCount * 500);
+  return true;
+}
+
+function mpRememberRoom() {
+  if (!mpState?.code || !mpMyId) return;
+  mpRestoreRoomCode = '';
+  mpRestoreRetryCount = 0;
+  mpSession.saveRoom({
+    gameKey: MP_GAME_KEY,
+    roomCode: mpState.code,
+    playerId: mpMyId,
+    role: mpIsHost ? 'host' : 'player',
+    state: 'lobby',
+  });
 }
 
 function mpShowLobby(state) {
@@ -835,6 +887,27 @@ function mpPickKeyword() {
 }
 
 /* ========== 灯箱 ========== */
+function mpRestoreName() {
+  const savedName = mpSession.applyNicknameToInput('mpNameInput');
+  if (!savedName) return '';
+  mpMyName = savedName;
+  document.getElementById('mpConfirmedName').textContent = mpMyName;
+  return savedName;
+}
+
+function mpRestoreSessionOnLoad() {
+  const savedName = mpRestoreName();
+  const savedRoom = mpSession.getRoom(MP_GAME_KEY);
+  if (!savedName || !savedRoom) return;
+  openMultiplayer();
+  mpRestoreRoomCode = savedRoom.roomCode;
+  mpRestoreRetryCount = 0;
+  mpSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
+  mpConnect(() => mpSend({ type: 'join_room', roomCode: savedRoom.roomCode, ...mpSession.identityPayload(mpMyName) }));
+}
+
+mpRestoreSessionOnLoad();
+
 function openLightbox(src) {
   document.getElementById('lightboxImg').src = src;
   document.getElementById('lightbox').classList.add('active');

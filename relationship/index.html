@@ -19,7 +19,7 @@
       --c3: #5D8F72;   /* 翻出真心 · 鼠尾草绿 */
       --c4: #B8864E;   /* 需求押注 · 暖金     */
       --c5: #9B7BB5;
-      --c6: #6B8FB5;
+      --c6: #C8972A;   /* 人生拍卖行 · 拍卖金 */
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -88,6 +88,7 @@
     a.game-card:nth-child(3) { animation: up .72s var(--ease) .28s both; }
     a.game-card:nth-child(4) { animation: up .72s var(--ease) .38s both; }
     a.game-card:nth-child(5) { animation: up .72s var(--ease) .46s both; }
+    a.game-card:nth-child(6) { animation: up .72s var(--ease) .54s both; }
     a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
     a.game-card:active { transform: translateY(-3px); }
 
@@ -481,6 +482,23 @@
           <h2>知己成双</h2>
           <p>一个词，五张图，排出你的顺序——拿给对方看，你们是不是想到一块去了。</p>
           <span class="card-link">开始游戏 →</span>
+        </div>
+      </a>
+
+      <!-- 06 人生拍卖行 -->
+      <a class="game-card" href="./auction/">
+        <div class="card-visual v6">
+          <div class="visual-content" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="font-size:32px;">🔨</div>
+            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.06em;">100筹码</div>
+          </div>
+        </div>
+        <div class="card-text">
+          <span class="card-num">06</span>
+          <span class="card-tag">2-8人 · 实时联机</span>
+          <h2>人生拍卖行</h2>
+          <p>每人100筹码，竞拍你认为此生最重要的东西。钱花完了，就是你真正在乎的。</p>
+          <span class="card-link">进入拍卖 →</span>
         </div>
       </a>
 

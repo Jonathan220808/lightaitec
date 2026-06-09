@@ -254,6 +254,7 @@
   <p class="start-label">互动游戏 · 04</p>
   <h1 class="start-title">需求<br>押注</h1>
   <p class="start-desc">一个场景，两份需求。看见彼此真正需要什么。</p>
+  <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:-12px 0 20px;">线下同屏玩：不用点“联机玩”，直接点“传着玩”并按提示递手机；不在一起或想各用各的手机时再用联机。</p>
   <div class="mechanic-box">
     <div class="mechanic-item">
       <div class="mechanic-num">1</div>
@@ -697,9 +698,12 @@ function confirmBet() {
   </div>
 </div>
 
+<script src="../shared/relationship-session.js"></script>
 <script>
 const NEEDS_WS = 'wss://lightaitec.com/relationship/needs/ws';
-let needsInMp=false, needsWs=null, needsMyId=null, needsMyName='', needsIsHost=false, needsMpIsSubject=false;
+const NEEDS_GAME_KEY = 'needs';
+const needsSession = window.RelationshipSession;
+let needsInMp=false, needsWs=null, needsMyId=null, needsMyName='', needsIsHost=false, needsMpIsSubject=false, needsState=null, needsIntentionalClose=false, needsRestoreRoomCode='', needsRestoreRetryCount=0;
 
 function openNeedsMp() { document.getElementById('needsMpOverlay').classList.add('open'); }
 function closeNeedsMp() { document.getElementById('needsMpOverlay').classList.remove('open'); }
@@ -707,33 +711,46 @@ function needsMpEnter() { needsInMp=true; closeNeedsMp(); showScreen('startScree
 
 function needsSend(msg) { if(needsWs&&needsWs.readyState===1) needsWs.send(JSON.stringify(msg)); }
 
+function needsConnect(onOpen) {
+  needsIntentionalClose=false;
+  needsWs=new WebSocket(NEEDS_WS);
+  needsWs.onopen=()=>{ if(onOpen) onOpen(); };
+  needsWs.onmessage=e=>needsMpMsg(JSON.parse(e.data));
+  needsWs.onclose=()=>{
+    if(!needsIntentionalClose&&needsState?.code){
+      needsSession.showConnectionStatus('reconnecting','正在重新连接...');
+      setTimeout(needsReconnect,2000);
+    }
+  };
+  needsWs.onerror=()=>{};
+}
+
+function needsReconnect() {
+  if(!needsState?.code||!needsMyName) return;
+  needsConnect(()=>needsSend({type:'join_room',roomCode:needsState.code,...needsSession.identityPayload(needsMyName)}));
+}
+
 function needsMpConfirm() {
   const n=document.getElementById('needsMpName').value.trim();
   if(!n){document.getElementById('needsMpErr').textContent='请输入昵称';return;}
-  needsMyName=n; document.getElementById('needsMpErr').textContent='';
+  needsMyName=needsSession.saveNickname(n).nickname; document.getElementById('needsMpErr').textContent='';
   document.getElementById('needsMpCName').textContent=n;
   document.getElementById('needsMpS1').style.display='none';
   document.getElementById('needsMpS2').style.display='block';
 }
 function needsMpCreate() {
   needsIsHost=true;
-  needsWs=new WebSocket(NEEDS_WS);
-  needsWs.onopen=()=>needsSend({type:'create_room',playerName:needsMyName});
-  needsWs.onmessage=e=>needsMpMsg(JSON.parse(e.data));
-  needsWs.onerror=()=>{};
+  needsConnect(()=>needsSend({type:'create_room',...needsSession.identityPayload(needsMyName)}));
 }
 function needsMpJoin() {
   const code=document.getElementById('needsMpCodeIn').value.trim();
   if(!code||code.length!==4){document.getElementById('needsMpJErr').textContent='请输入4位房间号';return;}
-  needsWs=new WebSocket(NEEDS_WS);
-  needsWs.onopen=()=>needsSend({type:'join_room',roomCode:code,playerName:needsMyName});
-  needsWs.onmessage=e=>needsMpMsg(JSON.parse(e.data));
-  needsWs.onerror=()=>{};
+  needsConnect(()=>needsSend({type:'join_room',roomCode:code,...needsSession.identityPayload(needsMyName)}));
 }
 function needsMpMsg(msg) {
-  if(msg.type==='room_created'){needsMyId=msg.state.players[0].id;needsMpShowLobby(msg.state);}
-  else if(msg.type==='joined'||msg.type==='rejoined'){needsMyId=msg.state.players.find(p=>p.name===needsMyName)?.id;needsMpShowLobby(msg.state);}
-  else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){needsMpRender(msg.state);}
+  if(msg.type==='room_created'){needsMyId=msg.state.players[0].id;needsState=msg.state;needsRememberRoom();needsMpShowLobby(msg.state);}
+  else if(msg.type==='joined'||msg.type==='rejoined'){needsMyId=msg.state.players.find(p=>p.name===needsMyName)?.id;needsState=msg.state;needsRememberRoom();needsSession.showConnectionStatus('restored','已回到房间');needsMpShowLobby(msg.state);}
+  else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){needsState=msg.state;needsMpRender(msg.state);}
   else if(msg.type==='guess_subject_set'){
     // 有人成为了本轮A
     needsMpIsSubject = msg.state?.players?.find(p=>p.id===needsMyId)?.id === msg.state?.guessState?.subjectId;
@@ -788,7 +805,28 @@ function needsMpMsg(msg) {
     needsMpIsSubject=false;
     needsMpUpdateScenario();
   }
-  else if(msg.type==='error'){document.getElementById('needsMpJErr').textContent=msg.message;}
+  else if(msg.type==='error'){needsSession.showConnectionStatus('failed',msg.message||'连接失败，请重试');if(needsRetryRestoreAfterNameCollision(msg.message))return;document.getElementById('needsMpJErr').textContent=msg.message;}
+}
+function needsRetryRestoreAfterNameCollision(message) {
+  if(!needsRestoreRoomCode||!needsSession.isRetryableRestoreError(message)||needsRestoreRetryCount>=5)return false;
+  needsRestoreRetryCount+=1;
+  needsSession.showConnectionStatus('reconnecting','Waiting for previous connection...');
+  setTimeout(()=>{
+    needsConnect(()=>needsSend({type:'join_room',roomCode:needsRestoreRoomCode,...needsSession.identityPayload(needsMyName)}));
+  },900+needsRestoreRetryCount*500);
+  return true;
+}
+function needsRememberRoom() {
+  if(!needsState?.code||!needsMyId) return;
+  needsRestoreRoomCode='';
+  needsRestoreRetryCount=0;
+  needsSession.saveRoom({
+    gameKey:NEEDS_GAME_KEY,
+    roomCode:needsState.code,
+    playerId:needsMyId,
+    role:needsIsHost?'host':'player',
+    state:'lobby',
+  });
 }
 function needsMpShowLobby(state) {
   document.getElementById('needsMpS2').style.display='none';
@@ -820,6 +858,26 @@ function needsMpUpdateScenario(subjectName) {
     ctrl.style.display='block'; betBtn.style.display='none';
   }
 }
+function needsRestoreName() {
+  const savedName=needsSession.applyNicknameToInput('needsMpName');
+  if(!savedName) return '';
+  needsMyName=savedName;
+  document.getElementById('needsMpCName').textContent=needsMyName;
+  document.getElementById('needsMpS1').style.display='none';
+  document.getElementById('needsMpS2').style.display='block';
+  return savedName;
+}
+function needsRestoreSessionOnLoad() {
+  const savedName=needsRestoreName();
+  const savedRoom=needsSession.getRoom(NEEDS_GAME_KEY);
+  if(!savedName||!savedRoom) return;
+  openNeedsMp();
+  needsRestoreRoomCode=savedRoom.roomCode;
+  needsRestoreRetryCount=0;
+  needsSession.showConnectionStatus('reconnecting',`正在回到 ${savedRoom.roomCode} 房间...`);
+  needsConnect(()=>needsSend({type:'join_room',roomCode:savedRoom.roomCode,...needsSession.identityPayload(needsMyName)}));
+}
+needsRestoreSessionOnLoad();
 function needsMpVolunteer() {
   needsMpIsSubject=true;
   needsSend({type:'guess_volunteer'});

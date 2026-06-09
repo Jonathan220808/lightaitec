@@ -253,6 +253,7 @@
     <div id="countScreen" class="count-screen">
       <h1>翻出真心</h1>
       <p>玩家 1 展示自己，其他人来猜——选择游戏人数</p>
+      <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:10px auto 0;max-width:420px;">线下同屏玩：不用点“联机玩”，选人数后按提示轮流递手机；不在一起或想各用各的手机时再用联机。</p>
       <div class="count-btns">
         <button class="count-btn" onclick="startWithCount(2)">
           <div class="btn-top"><span class="num">2</span></div>
@@ -497,40 +498,57 @@
     </div>
   </div>
 
+  <script src="../shared/relationship-session.js"></script>
   <script>
     const FLIP_WS='wss://lightaitec.com/relationship/flip/ws';
-    let flipInMp=false,flipWs=null,flipMyId=null,flipMyName='',flipIsHost=false,flipMpIsSubject=false;
+    const FLIP_GAME_KEY='flip';
+    const flipSession=window.RelationshipSession;
+    let flipInMp=false,flipWs=null,flipMyId=null,flipMyName='',flipIsHost=false,flipMpIsSubject=false,flipState=null,flipIntentionalClose=false,flipRestoreRoomCode='',flipRestoreRetryCount=0;
 
     function openFlipMp(){document.getElementById('flipMpOverlay').style.display='block';}
     function closeFlipMp(){document.getElementById('flipMpOverlay').style.display='none';}
     function flipSend(m){if(flipWs&&flipWs.readyState===1)flipWs.send(JSON.stringify(m));}
+    function flipConnect(onOpen){
+      flipIntentionalClose=false;
+      flipWs=new WebSocket(FLIP_WS);
+      flipWs.onopen=()=>{if(onOpen)onOpen();};
+      flipWs.onmessage=e=>flipMpMsg(JSON.parse(e.data));
+      flipWs.onclose=()=>{
+        if(!flipIntentionalClose&&flipState?.code){
+          flipSession.showConnectionStatus('reconnecting','正在重新连接...');
+          setTimeout(flipReconnect,2000);
+        }
+      };
+      flipWs.onerror=()=>{};
+    }
+    function flipReconnect(){
+      if(!flipState?.code||!flipMyName)return;
+      flipConnect(()=>flipSend({type:'join_room',roomCode:flipState.code,...flipSession.identityPayload(flipMyName)}));
+    }
 
     function flipMpConfirm(){
       const n=document.getElementById('flipMpName').value.trim();
       if(!n){document.getElementById('flipMpErr').textContent='请输入昵称';return;}
-      flipMyName=n;document.getElementById('flipMpErr').textContent='';
+      flipMyName=flipSession.saveNickname(n).nickname;document.getElementById('flipMpErr').textContent='';
       document.getElementById('flipMpCN').textContent=n;
       document.getElementById('flipMpS1').style.display='none';
       document.getElementById('flipMpS2').style.display='block';
     }
     function flipMpCreate(){
-      flipIsHost=true;flipWs=new WebSocket(FLIP_WS);
-      flipWs.onopen=()=>flipSend({type:'create_room',playerName:flipMyName});
-      flipWs.onmessage=e=>flipMpMsg(JSON.parse(e.data));flipWs.onerror=()=>{};
+      flipIsHost=true;
+      flipConnect(()=>flipSend({type:'create_room',...flipSession.identityPayload(flipMyName)}));
     }
     function flipMpJoin(){
       const c=document.getElementById('flipMpCode').value.trim();
       if(!c||c.length!==4){document.getElementById('flipMpJErr').textContent='请输入4位房间号';return;}
-      flipWs=new WebSocket(FLIP_WS);
-      flipWs.onopen=()=>flipSend({type:'join_room',roomCode:c,playerName:flipMyName});
-      flipWs.onmessage=e=>flipMpMsg(JSON.parse(e.data));flipWs.onerror=()=>{};
+      flipConnect(()=>flipSend({type:'join_room',roomCode:c,...flipSession.identityPayload(flipMyName)}));
     }
     function flipMpEnter(){flipInMp=true;closeFlipMp();flipMpUpdateCtrl();}
 
     function flipMpMsg(msg){
-      if(msg.type==='room_created'){flipMyId=msg.state.players[0].id;flipMpShowLobby(msg.state);}
-      else if(msg.type==='joined'||msg.type==='rejoined'){flipMyId=msg.state.players.find(p=>p.name===flipMyName)?.id;flipMpShowLobby(msg.state);}
-      else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){flipMpRender(msg.state);}
+      if(msg.type==='room_created'){flipMyId=msg.state.players[0].id;flipState=msg.state;flipRememberRoom();flipMpShowLobby(msg.state);}
+      else if(msg.type==='joined'||msg.type==='rejoined'){flipMyId=msg.state.players.find(p=>p.name===flipMyName)?.id;flipState=msg.state;flipRememberRoom();flipSession.showConnectionStatus('restored','已回到房间');flipMpShowLobby(msg.state);}
+      else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){flipState=msg.state;flipMpRender(msg.state);}
       else if(msg.type==='guess_subject_set'){
         flipMpIsSubject=msg.subjectName===flipMyName;flipMpUpdateCtrl(msg.subjectName);
       }
@@ -575,10 +593,31 @@
         });
         document.getElementById('result').innerHTML=resText;
         document.getElementById('nextBtn').style.display='inline-block';
-        document.getElementById('nextBtn').onclick=()=>{flipSend({type:'guess_next_round'});flipMpIsSubject=false;flipMpUpdateCtrl();initGame();};
+        document.getElementById('nextBtn').onclick=flipPrepareNextRound;
       }
       else if(msg.type==='guess_reset'){flipMpIsSubject=false;flipMpUpdateCtrl();}
-      else if(msg.type==='error'){document.getElementById('flipMpJErr').textContent=msg.message;}
+      else if(msg.type==='error'){flipSession.showConnectionStatus('failed',msg.message||'连接失败，请重试');if(flipRetryRestoreAfterNameCollision(msg.message))return;document.getElementById('flipMpJErr').textContent=msg.message;}
+    }
+    function flipRetryRestoreAfterNameCollision(message){
+      if(!flipRestoreRoomCode||!flipSession.isRetryableRestoreError(message)||flipRestoreRetryCount>=5)return false;
+      flipRestoreRetryCount+=1;
+      flipSession.showConnectionStatus('reconnecting','Waiting for previous connection...');
+      setTimeout(()=>{
+        flipConnect(()=>flipSend({type:'join_room',roomCode:flipRestoreRoomCode,...flipSession.identityPayload(flipMyName)}));
+      },900+flipRestoreRetryCount*500);
+      return true;
+    }
+    function flipRememberRoom(){
+      if(!flipState?.code||!flipMyId)return;
+      flipRestoreRoomCode='';
+      flipRestoreRetryCount=0;
+      flipSession.saveRoom({
+        gameKey:FLIP_GAME_KEY,
+        roomCode:flipState.code,
+        playerId:flipMyId,
+        role:flipIsHost?'host':'player',
+        state:'lobby',
+      });
     }
 
     function flipMpShowLobby(state){
@@ -611,8 +650,42 @@
         ctrl.style.display='block';
       }
     }
+    function flipPrepareNextRound(){
+      flipSend({type:'guess_next_round'});
+      flipMpIsSubject=false;
+      selectArr=[];
+      currentCards=[];
+      document.getElementById('result').innerHTML='';
+      document.getElementById('cardBox').innerHTML='';
+      document.getElementById('nextBtn').style.display='none';
+      document.getElementById('sureBtn').disabled=true;
+      document.getElementById('sureBtn').textContent='确认选择';
+      document.getElementById('gameScreen').style.display='none';
+      document.getElementById('countScreen').style.display='block';
+      flipMpUpdateCtrl();
+    }
+    function flipRestoreName(){
+      const savedName=flipSession.applyNicknameToInput('flipMpName');
+      if(!savedName)return '';
+      flipMyName=savedName;
+      document.getElementById('flipMpCN').textContent=flipMyName;
+      document.getElementById('flipMpS1').style.display='none';
+      document.getElementById('flipMpS2').style.display='block';
+      return savedName;
+    }
+    function flipRestoreSessionOnLoad(){
+      const savedName=flipRestoreName();
+      const savedRoom=flipSession.getRoom(FLIP_GAME_KEY);
+      if(!savedName||!savedRoom)return;
+      openFlipMp();
+      flipRestoreRoomCode=savedRoom.roomCode;
+      flipRestoreRetryCount=0;
+      flipSession.showConnectionStatus('reconnecting',`正在回到 ${savedRoom.roomCode} 房间...`);
+      flipConnect(()=>flipSend({type:'join_room',roomCode:savedRoom.roomCode,...flipSession.identityPayload(flipMyName)}));
+    }
+    flipRestoreSessionOnLoad();
     function flipMpVolunteer(){
-      flipMpIsSubject=true;flipSend({type:'guess_volunteer'});flipMpUpdateCtrl('me');
+      flipMpIsSubject=true;flipSend({type:'guess_volunteer'});flipMpUpdateCtrl('me');startWithCount(2);
     }
   </script>
 </body>

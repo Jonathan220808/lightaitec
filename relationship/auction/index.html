@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>人生拍卖行</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FBF8F2;
+      --card: #FFFFFF;
+      --gold: #C8972A;
+      --gold-dk: #A67820;
+      --gold-lt: #F5E8C4;
+      --text: #1A1208;
+      --muted: #8A7A5A;
+      --soft: #F2EBD8;
+      --ease: cubic-bezier(0.16,1,0.3,1);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body {
+      font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+      background: radial-gradient(ellipse 120% 40% at 50% 0%, rgba(200,151,42,.12) 0%, transparent 60%), var(--bg);
+      min-height:100vh; color:var(--text); overflow-x:hidden;
+    }
+    .screen { display:none; padding:24px 16px 56px; max-width:480px; margin:0 auto; }
+    .screen.active { display:block; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .back { background:none; border:none; cursor:pointer; font-family:inherit; font-size:13px; color:var(--muted); padding:0; }
+    .back:hover { color:var(--gold); }
+    .home-link { font-size:11px; color:rgba(138,122,90,.5); text-decoration:none; letter-spacing:.04em; }
+    .home-link:hover { color:var(--gold); }
+
+    .btn { width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; transition:.2s var(--ease); letter-spacing:.02em; font-family:inherit; }
+    .btn-gold { background:var(--gold); color:#fff; }
+    .btn-gold:hover { background:var(--gold-dk); }
+    .btn-gold:active { transform:scale(.98); }
+    .btn-ghost { background:transparent; color:var(--muted); border:1.5px solid rgba(138,122,90,.3); font-size:14px; padding:13px; border-radius:14px; }
+    .btn-ghost:hover { border-color:var(--gold); color:var(--gold); }
+    .btn-disabled { opacity:.35; pointer-events:none; }
+
+    /* ── 开始屏 ── */
+    .start-label { font-size:11px; font-weight:700; letter-spacing:.16em; color:var(--muted); margin-bottom:12px; text-transform:uppercase; }
+    .start-title { font-family:'Noto Serif SC',serif; font-size:44px; font-weight:900; line-height:1.1; margin-bottom:10px; }
+    .start-title span { color:var(--gold); }
+    .start-desc { font-size:15px; color:var(--muted); line-height:1.8; margin-bottom:28px; }
+    .input-field {
+      width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid rgba(138,122,90,.25);
+      font-size:15px; font-family:inherit; background:var(--card); color:var(--text);
+      outline:none; transition:border-color .2s; margin-bottom:12px; display:block;
+    }
+    .input-field:focus { border-color:var(--gold); }
+    .input-field::placeholder { color:rgba(138,122,90,.5); }
+    .join-section { margin-top:10px; }
+    .divider { display:flex; align-items:center; gap:12px; margin:16px 0; }
+    .divider-line { flex:1; height:1px; background:rgba(138,122,90,.2); }
+    .divider-text { font-size:12px; color:var(--muted); }
+    .error-msg { font-size:13px; color:#C0392B; text-align:center; min-height:18px; margin-top:8px; }
+    /* 两步流程：第二步初始隐藏 */
+    #step2 { display:none; }
+
+    /* ── 等待室 ── */
+    .room-code-box { background:var(--card); border-radius:20px; padding:24px; text-align:center; margin-bottom:20px; box-shadow:0 2px 16px rgba(0,0,0,.06); }
+    .rcode-label { font-size:12px; color:var(--muted); letter-spacing:.1em; margin-bottom:8px; }
+    .rcode-num { font-family:'Noto Serif SC',serif; font-size:52px; font-weight:900; color:var(--gold); letter-spacing:.12em; }
+    .rcode-hint { font-size:12px; color:var(--muted); margin-top:8px; }
+    .player-list { background:var(--card); border-radius:16px; padding:16px 20px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,.05); }
+    .pl-title { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.08em; margin-bottom:12px; }
+    .pl-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(138,122,90,.1); }
+    .pl-item:last-child { border-bottom:none; }
+    .pl-dot { width:8px; height:8px; border-radius:50%; background:var(--gold); flex-shrink:0; }
+    .pl-dot.offline { background:rgba(138,122,90,.3); }
+    .pl-name { font-size:14px; }
+    .pl-tag { margin-left:auto; font-size:11px; color:var(--muted); }
+    .wait-hint { font-size:13px; color:var(--muted); text-align:center; margin-bottom:20px; line-height:1.7; }
+
+    /* ── 预览屏 ── */
+    .preview-header { text-align:center; margin-bottom:20px; }
+    .preview-title { font-family:'Noto Serif SC',serif; font-size:26px; font-weight:900; margin-bottom:6px; }
+    .preview-sub { font-size:13px; color:var(--muted); }
+    .items-list { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+    .preview-item { background:var(--card); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 8px rgba(0,0,0,.04); }
+    .item-num { font-size:14px; font-weight:700; color:var(--gold); min-width:22px; }
+    .item-text { font-size:14px; line-height:1.5; flex:1; }
+    .my-chips-bar { background:var(--gold-lt); border-radius:12px; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .mcb-label { font-size:12px; color:var(--muted); }
+    .mcb-val { font-family:'Noto Serif SC',serif; font-size:22px; font-weight:900; color:var(--gold); }
+    .host-action-box { background:var(--card); border-radius:14px; padding:16px; text-align:center; margin-bottom:16px; box-shadow:0 2px 12px rgba(200,151,42,.1); }
+    .wait-for-host { font-size:14px; color:var(--muted); text-align:center; padding:16px; }
+
+    /* ── 竞拍屏 ── */
+    .item-progress { display:flex; gap:4px; margin-bottom:16px; }
+    .ip-dot { flex:1; height:4px; border-radius:2px; background:rgba(138,122,90,.2); }
+    .ip-dot.done { background:var(--gold); }
+    .ip-dot.active { background:var(--gold); opacity:.55; }
+    .auction-item-card { background:var(--card); border-radius:20px; padding:24px; text-align:center; margin-bottom:16px; box-shadow:0 4px 24px rgba(200,151,42,.12); border:1.5px solid rgba(200,151,42,.2); }
+    .aic-label { font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--gold); margin-bottom:10px; }
+    .aic-text { font-family:'Noto Serif SC',serif; font-size:22px; font-weight:700; line-height:1.5; color:var(--text); }
+    .current-bid-box { background:var(--soft); border-radius:14px; padding:16px; margin-bottom:14px; text-align:center; }
+    .cbb-label { font-size:12px; color:var(--muted); margin-bottom:4px; }
+    .cbb-amount { font-family:'Noto Serif SC',serif; font-size:40px; font-weight:900; color:var(--text); }
+    .cbb-bidder { font-size:13px; color:var(--gold); margin-top:4px; min-height:18px; }
+    .bid-buttons { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+    .bid-btn { padding:12px 8px; border-radius:12px; border:1.5px solid rgba(200,151,42,.4); background:var(--card); color:var(--gold); font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; }
+    .bid-btn:hover { background:var(--gold-lt); border-color:var(--gold); }
+    .bid-btn:active { transform:scale(.95); }
+    .bid-btn:disabled { opacity:.35; pointer-events:none; }
+    .custom-bid-row { display:flex; gap:8px; margin-bottom:14px; }
+    .custom-bid-input { flex:1; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(138,122,90,.25); font-size:15px; font-family:inherit; background:var(--card); color:var(--text); outline:none; }
+    .custom-bid-input:focus { border-color:var(--gold); }
+    .my-bid-status { font-size:13px; color:var(--muted); text-align:center; margin-bottom:10px; min-height:18px; }
+    /* 主持人悬浮面板（固定在页面右侧中央） */
+    .host-float-panel {
+      position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      z-index: 200;
+    }
+    .host-panel-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      color: var(--gold); background: var(--gold-lt);
+      padding: 3px 8px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .host-gavel-btn {
+      width: 76px; height: 86px; border-radius: 20px;
+      background: var(--gold); color: #fff; border: none; cursor: pointer;
+      font-family: inherit; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      box-shadow: 0 6px 24px rgba(200,151,42,.55); transition: .15s;
+    }
+    .host-gavel-btn:hover { background: var(--gold-dk); }
+    .host-gavel-btn:active { transform: scale(.88); }
+    .host-gavel-btn .bi { font-size: 28px; }
+    .host-gavel-btn .bl { font-size: 13px; font-weight: 800; letter-spacing: .04em; }
+    .host-flow-btn {
+      width: 76px; height: 38px; border-radius: 11px;
+      background: rgba(255,255,255,.92); color: var(--muted);
+      border: 1px solid rgba(138,122,90,.35); cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08); transition: .15s;
+    }
+    .host-flow-btn:hover { color: var(--text); border-color: var(--muted); }
+    .host-flow-btn:active { opacity: .65; }
+    /* 主持人台词提示（竞拍屏顶部，仅主持人可见） */
+    .host-script {
+      background: rgba(200,151,42,.09); border-radius: 10px;
+      padding: 10px 14px; margin-bottom:12px;
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+    }
+    .host-script b { color: var(--gold-dk); }
+    /* 主持人须知卡（等待室） */
+    .host-brief {
+      background: var(--gold-lt); border-radius: 14px;
+      padding: 16px 18px; margin-bottom: 16px;
+      border: 1px solid rgba(200,151,42,.25);
+    }
+    .host-brief-title { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing:.06em; margin-bottom: 10px; }
+    .host-brief p { font-size: 13px; color: var(--text); line-height: 1.85; }
+    /* 已拍到 */
+    .my-won { background:var(--gold-lt); border-radius:12px; padding:10px 14px; margin-bottom:12px; }
+    .mw-label { font-size:11px; color:var(--muted); margin-bottom:6px; }
+    .mw-items { display:flex; flex-wrap:wrap; gap:5px; }
+    .mw-tag { font-size:11px; background:rgba(200,151,42,.15); color:var(--gold-dk); padding:3px 8px; border-radius:20px; }
+    /* 玩家筹码 */
+    .players-chips { background:var(--card); border-radius:14px; padding:12px 16px; box-shadow:0 1px 8px rgba(0,0,0,.04); }
+    .pc-title { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.08em; margin-bottom:10px; }
+    .pc-item { display:flex; align-items:center; gap:8px; padding:5px 0; }
+    .pc-name { font-size:13px; flex:1; }
+    .pc-chips { font-size:13px; font-weight:700; color:var(--gold); }
+    .pc-items-count { font-size:11px; color:var(--muted); }
+    .pc-me { font-weight:700; }
+
+    /* ── 落槌屏 ── */
+    .gavel-screen-inner { text-align:center; padding:60px 24px; }
+    .gavel-icon { font-size:64px; margin-bottom:16px; }
+    .gavel-result { font-family:'Noto Serif SC',serif; font-size:22px; font-weight:700; margin-bottom:8px; }
+    .gavel-item { font-size:17px; color:var(--text); margin:12px 0; line-height:1.5; }
+    .gavel-detail { font-size:15px; color:var(--muted); line-height:1.7; }
+
+    /* ── 结果屏 ── */
+    .results-title { font-family:'Noto Serif SC',serif; font-size:32px; font-weight:900; text-align:center; margin-bottom:6px; }
+    .results-sub { font-size:14px; color:var(--muted); text-align:center; margin-bottom:24px; }
+    .player-result-card { background:var(--card); border-radius:18px; padding:18px 20px; margin-bottom:12px; box-shadow:0 2px 14px rgba(0,0,0,.06); }
+    .prc-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .prc-name { font-size:17px; font-weight:700; flex:1; }
+    .prc-name.me { color:var(--gold); }
+    .prc-chips { font-size:13px; color:var(--muted); }
+    .prc-items { display:flex; flex-direction:column; gap:6px; }
+    .prc-item { display:flex; align-items:center; gap:10px; }
+    .prc-item-text { font-size:13px; line-height:1.5; flex:1; }
+    .prc-paid { font-size:12px; color:var(--gold); font-weight:700; min-width:36px; text-align:right; }
+    .prc-empty { font-size:13px; color:rgba(138,122,90,.5); text-align:center; padding:8px; }
+    .prompt-box { background:var(--gold-lt); border-radius:16px; padding:18px 22px; text-align:center; margin-bottom:24px; }
+    .prompt-box p { font-size:14px; color:var(--text); line-height:1.8; }
+    .prompt-box strong { color:var(--gold-dk); }
+  </style>
+</head>
+<body>
+
+<!-- ① 开始屏（两步流程） -->
+<div id="startScreen" class="screen active">
+  <div class="topbar">
+    <a href="../" class="back">← 所有游戏</a>
+  </div>
+  <p class="start-label">互动游戏 · 06</p>
+  <h1 class="start-title">人生<br><span>拍卖行</span></h1>
+  <p class="start-desc">每人 100 筹码，拍下你认为此生最重要的东西。<br>钱花完了，就是你真正在乎的。</p>
+
+  <!-- 第一步：输入昵称 -->
+  <div id="step1">
+    <input class="input-field" id="nameInput" type="text" placeholder="先输入你的昵称（最多12字）" maxlength="12">
+    <button class="btn btn-gold" onclick="confirmName()">确认昵称</button>
+    <p class="error-msg" id="startError"></p>
+  </div>
+
+  <!-- 第二步：创建或加入（确认昵称后显示） -->
+  <div id="step2">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">你好，<b id="confirmedName" style="color:var(--text)"></b> 👋</p>
+    <button class="btn btn-gold" onclick="createRoom()">创建房间（我是主持人）</button>
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">或者加入已有房间</div><div class="divider-line"></div></div>
+    <input class="input-field" id="codeInput" type="text" placeholder="输入4位房间号" maxlength="4" pattern="[0-9]*" inputmode="numeric">
+    <button class="btn btn-ghost" onclick="joinRoom()">加入房间</button>
+    <p class="error-msg" id="joinError"></p>
+  </div>
+</div>
+
+<!-- ② 等待室 -->
+<div id="lobbyScreen" class="screen">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">← 退出</button>
+    <a href="../" class="home-link">首页</a>
+  </div>
+  <div class="room-code-box">
+    <p class="rcode-label">房间号</p>
+    <p class="rcode-num" id="lobbyCode">—</p>
+    <p class="rcode-hint">把这个号码告诉朋友，一起来玩</p>
+  </div>
+  <div class="player-list">
+    <p class="pl-title">已加入 <span id="lobbyCount">0</span> / 8</p>
+    <div id="lobbyPlayers"></div>
+  </div>
+  <!-- 主持人须知（仅主持人可见） -->
+  <div id="hostBrief" class="host-brief" style="display:none;">
+    <p class="host-brief-title">🎙 主持人须知</p>
+    <p>
+      <b>① 等待阶段</b>：让大家加入后，你点「开始游戏」<br>
+      <b>② 预览阶段</b>：大家看完 10 件拍品、规划好筹码，你点「开始拍卖」<br>
+      <b>③ 竞拍阶段</b>：你喊「还有更高的吗？」，没人加价就点右侧 <b>落槌</b>；没人出价则点 <b>流拍</b> 跳过<br>
+      <b>④ 结束后</b>：引导大家聊——「你最想要哪件？为什么抢那件？」
+    </p>
+  </div>
+  <p class="wait-hint" id="lobbyHint">等待更多玩家加入…<br>至少 2 人才能开始</p>
+  <button class="btn btn-gold btn-disabled" id="startBtn" onclick="startGame()">开始游戏</button>
+</div>
+
+<!-- ③ 预览屏 -->
+<div id="previewScreen" class="screen">
+  <div class="topbar">
+    <span style="font-size:13px;color:var(--muted)">即将拍卖的 10 件</span>
+    <a href="../" class="home-link">首页</a>
+  </div>
+  <div class="preview-header">
+    <p class="preview-title">记住你想要什么</p>
+    <p class="preview-sub">规划你的 100 筹码</p>
+  </div>
+  <div class="my-chips-bar">
+    <span class="mcb-label">我的筹码</span>
+    <span class="mcb-val" id="previewChips">100</span>
+  </div>
+  <div class="items-list" id="previewItems"></div>
+
+  <!-- 主持人看到"开始拍卖"按钮，其他玩家看到等待提示 -->
+  <div id="previewHostCtrl" class="host-action-box" style="display:none;">
+    <p style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:14px;">
+      🎙 给大家 1-2 分钟看完、规划好筹码。<br>
+      大家准备好后，你来开始拍卖。
+    </p>
+    <button class="btn btn-gold" onclick="startBidding()">🔨 开始拍卖</button>
+  </div>
+  <p id="previewWait" class="wait-for-host" style="display:none;">等待主持人开始拍卖…</p>
+</div>
+
+<!-- ④ 竞拍屏 -->
+<div id="biddingScreen" class="screen">
+  <div class="topbar">
+    <span style="font-size:13px;color:var(--muted)">第 <span id="itemNumLabel">1</span> / 10 件</span>
+    <a href="../" class="home-link">首页</a>
+  </div>
+  <div class="item-progress" id="itemProgress"></div>
+
+  <!-- 主持人台词提示（仅主持人可见） -->
+  <div id="hostScript" class="host-script" style="display:none;">
+    🎙 <b>你来喊：</b>「还有人要出更高价吗？……没有了——」然后点右侧 <b>落槌</b> 成交，或 <b>流拍</b> 跳过
+  </div>
+
+  <div class="auction-item-card">
+    <p class="aic-label">NOW BIDDING</p>
+    <p class="aic-text" id="aicText"></p>
+  </div>
+
+  <div class="current-bid-box">
+    <p class="cbb-label">当前最高出价</p>
+    <p class="cbb-amount" id="cbbAmount">5</p>
+    <p class="cbb-bidder" id="cbbBidder">暂无出价</p>
+  </div>
+
+  <div id="myWon" class="my-won" style="display:none;">
+    <p class="mw-label">我已拍到</p>
+    <div class="mw-items" id="myWonItems"></div>
+  </div>
+
+  <p class="my-bid-status" id="myBidStatus"></p>
+  <div class="bid-buttons" id="bidButtons">
+    <button class="bid-btn" onclick="quickBid(1)">+1</button>
+    <button class="bid-btn" onclick="quickBid(5)">+5</button>
+    <button class="bid-btn" onclick="quickBid(10)">+10</button>
+  </div>
+  <div class="custom-bid-row">
+    <input class="custom-bid-input" id="customBidInput" type="number" placeholder="自定义筹码数" min="1" inputmode="numeric">
+    <button class="btn btn-gold" style="width:auto;padding:12px 20px;border-radius:12px;" onclick="customBid()">出价</button>
+  </div>
+
+  <div class="players-chips">
+    <p class="pc-title">所有玩家筹码</p>
+    <div id="playersChipsList"></div>
+  </div>
+</div>
+
+<!-- 主持人悬浮控制面板（固定在页面右侧，竞拍时显示） -->
+<div id="hostFloatPanel" class="host-float-panel" style="display:none;">
+  <span class="host-panel-label">主持人</span>
+  <button class="host-gavel-btn" onclick="closeBid()">
+    <span class="bi">🔨</span>
+    <span class="bl">落槌</span>
+  </button>
+  <button class="host-flow-btn" onclick="flowBid()">流拍</button>
+</div>
+
+<!-- ⑤ 落槌屏 -->
+<div id="gavelScreen" class="screen">
+  <div class="gavel-screen-inner">
+    <div class="gavel-icon" id="gavelIcon">🔨</div>
+    <p class="gavel-result" id="gavelResult"></p>
+    <p class="gavel-item" id="gavelItem"></p>
+    <p class="gavel-detail" id="gavelDetail"></p>
+  </div>
+</div>
+
+<!-- ⑥ 结果屏 -->
+<div id="resultsScreen" class="screen">
+  <div class="topbar">
+    <span></span>
+    <a href="../" class="home-link">首页</a>
+  </div>
+  <p class="results-title">拍卖结束</p>
+  <p class="results-sub">来聊聊你最在意的是什么</p>
+  <div class="prompt-box">
+    <p>你最想要的那件——拍到了吗？<br><strong>没拍到的，是因为钱不够，还是放弃了它？</strong></p>
+  </div>
+  <div id="resultsCards"></div>
+  <button class="btn btn-ghost" style="margin-top:8px;" onclick="location.href='../'">回首页</button>
+</div>
+
+<script src="../shared/relationship-session.js"></script>
+<script>
+const WS_URL = 'wss://lightaitec.com/relationship/auction/ws';
+const GAME_KEY = 'auction';
+const roomSession = window.RelationshipSession;
+
+let ws = null;
+let myId = null;
+let myName = '';
+let state = null;
+let isHost = false;
+let intentionalClose = false;
+let restoreRoomCode = '';
+let restoreRetryCount = 0;
+
+// ── 第一步：确认昵称 ──
+function confirmName() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { document.getElementById('startError').textContent = '请输入昵称'; return; }
+  myName = roomSession.saveNickname(name).nickname;
+  document.getElementById('startError').textContent = '';
+  document.getElementById('confirmedName').textContent = myName;
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+}
+
+// ── WebSocket ──
+function connect(onOpen) {
+  intentionalClose = false;
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => { if (onOpen) onOpen(); };
+  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  ws.onclose = () => {
+    if (!intentionalClose && state && state.state !== 'results') {
+      roomSession.showConnectionStatus('reconnecting', '正在重新连接...');
+      setTimeout(reconnect, 2000);
+    }
+  };
+  ws.onerror = () => {};
+}
+
+function reconnect() {
+  if (!state?.code || !myName) return;
+  connect(() => send({ type: 'join_room', roomCode: state.code, ...roomSession.identityPayload(myName) }));
+}
+
+function send(msg) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
+}
+
+// ── 消息处理 ──
+function handleMsg(msg) {
+  switch (msg.type) {
+    case 'room_created':
+      myId = msg.state.players[0].id;
+      isHost = true;
+      state = msg.state;
+      rememberRoom();
+      showLobby();
+      break;
+    case 'joined':
+    case 'rejoined':
+      state = msg.state;
+      myId = state.players.find(p => p.name === myName)?.id;
+      isHost = (myId === state.hostId);
+      rememberRoom();
+      roomSession.showConnectionStatus('restored', '已回到房间');
+      if (state.state === 'lobby') showLobby();
+      else if (state.state === 'preview') showPreview();
+      else if (state.state === 'bidding') showBidding();
+      else if (state.state === 'results') showResults();
+      break;
+    case 'player_joined':
+    case 'player_back':
+    case 'player_left':
+      state = msg.state;
+      if (state.state === 'lobby') renderLobby();
+      else renderPlayerChips();
+      break;
+    case 'game_start':
+      state = msg.state;
+      showPreview();
+      break;
+    case 'item_start':
+      state = msg.state;
+      showBidding();
+      break;
+    case 'bid_update':
+      state = msg.state;
+      renderBidding();
+      break;
+    case 'item_sold':
+    case 'item_unsold':
+      state = msg.state;
+      showGavel(msg);
+      break;
+    case 'game_over':
+      state = msg.state;
+      roomSession.clearRoom(GAME_KEY);
+      setTimeout(showResults, 500);
+      break;
+    case 'error':
+      roomSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
+      if (retryRestoreAfterNameCollision(msg.message)) break;
+      document.getElementById('joinError').textContent = msg.message;
+      break;
+  }
+}
+
+function retryRestoreAfterNameCollision(message) {
+  if (!restoreRoomCode || !roomSession.isRetryableRestoreError(message) || restoreRetryCount >= 5) return false;
+  restoreRetryCount += 1;
+  roomSession.showConnectionStatus('reconnecting', 'Waiting for previous connection...');
+  setTimeout(() => {
+    connect(() => send({ type: 'join_room', roomCode: restoreRoomCode, ...roomSession.identityPayload(myName) }));
+  }, 900 + restoreRetryCount * 500);
+  return true;
+}
+
+function rememberRoom() {
+  if (!state?.code || !myId) return;
+  restoreRoomCode = '';
+  restoreRetryCount = 0;
+  roomSession.saveRoom({
+    gameKey: GAME_KEY,
+    roomCode: state.code,
+    playerId: myId,
+    role: isHost ? 'host' : 'player',
+    state: state.state,
+  });
+}
+
+// ── 房间操作 ──
+function createRoom() {
+  document.getElementById('joinError').textContent = '';
+  connect(() => send({ type: 'create_room', ...roomSession.identityPayload(myName) }));
+}
+
+function joinRoom() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code || code.length !== 4) { document.getElementById('joinError').textContent = '请输入4位房间号'; return; }
+  document.getElementById('joinError').textContent = '';
+  connect(() => send({ type: 'join_room', roomCode: code, ...roomSession.identityPayload(myName) }));
+}
+
+function leaveRoom() {
+  intentionalClose = true;
+  roomSession.clearRoom(GAME_KEY);
+  ws && ws.close();
+  showScreen('startScreen');
+}
+function startGame() { send({ type: 'start_game' }); }
+function startBidding() { send({ type: 'start_bidding' }); }
+function closeBid() { send({ type: 'close_bid' }); }
+function flowBid() { send({ type: 'skip_item' }); }
+
+// ── 出价 ──
+function me() { return state && state.players.find(p => p.id === myId); }
+
+function quickBid(delta) {
+  const amount = (state ? state.currentBid : 5) + delta;
+  const player = me();
+  if (!player || amount > player.chips) return;
+  send({ type: 'place_bid', amount });
+}
+
+function customBid() {
+  const val = parseInt(document.getElementById('customBidInput').value);
+  const current = state ? state.currentBid : 5;
+  const player = me();
+  if (!val || val <= current) {
+    const el = document.getElementById('customBidInput');
+    el.style.borderColor = '#C0392B';
+    setTimeout(() => el.style.borderColor = '', 1000);
+    return;
+  }
+  if (!player || val > player.chips) return;
+  send({ type: 'place_bid', amount: val });
+  document.getElementById('customBidInput').value = '';
+}
+
+// ── 界面 ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  // 悬浮面板只在竞拍屏 + 主持人时显示
+  const panel = document.getElementById('hostFloatPanel');
+  if (panel) panel.style.display = (isHost && id === 'biddingScreen') ? 'flex' : 'none';
+}
+
+function showLobby() { showScreen('lobbyScreen'); renderLobby(); }
+
+function renderLobby() {
+  document.getElementById('lobbyCode').textContent = state.code;
+  document.getElementById('lobbyCount').textContent = state.players.length;
+  const list = document.getElementById('lobbyPlayers');
+  list.innerHTML = '';
+  state.players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'pl-item';
+    div.innerHTML = `<div class="pl-dot ${p.connected ? '' : 'offline'}"></div>
+      <span class="pl-name">${p.name}${p.id === myId ? ' (我)' : ''}</span>
+      <span class="pl-tag">${i === 0 ? '主持人' : ''}</span>`;
+    list.appendChild(div);
+  });
+  const canStart = isHost && state.players.length >= 2;
+  document.getElementById('startBtn').classList.toggle('btn-disabled', !canStart);
+  document.getElementById('lobbyHint').textContent = state.players.length >= 2
+    ? (isHost ? '玩家已就位，可以开始了！' : '等待主持人开始游戏…')
+    : '等待更多玩家加入…至少 2 人才能开始';
+  // 主持人须知卡
+  const brief = document.getElementById('hostBrief');
+  if (brief) brief.style.display = isHost ? 'block' : 'none';
+}
+
+function showPreview() {
+  showScreen('previewScreen');
+  const player = me();
+  if (player) document.getElementById('previewChips').textContent = player.chips;
+
+  const list = document.getElementById('previewItems');
+  list.innerHTML = '';
+  state.items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'preview-item';
+    // 不显示类别标签，只显示序号和文字
+    div.innerHTML = `<span class="item-num">${i + 1}</span>
+      <span class="item-text">${item.text}</span>`;
+    list.appendChild(div);
+  });
+
+  // 主持人看到"开始拍卖"按钮，其他人看到等待提示
+  document.getElementById('previewHostCtrl').style.display = isHost ? 'block' : 'none';
+  document.getElementById('previewWait').style.display = isHost ? 'none' : 'block';
+}
+
+function showBidding() { showScreen('biddingScreen'); renderBidding(); }
+
+function renderBidding() {
+  if (!state) return;
+  const idx = state.currentItemIndex;
+  const item = state.items[idx];
+  const player = me();
+  if (!item || !player) return;
+
+  document.getElementById('itemNumLabel').textContent = idx + 1;
+  document.getElementById('aicText').textContent = item.text;
+  document.getElementById('cbbAmount').textContent = state.currentBid;
+
+  const bidder = state.players.find(p => p.id === state.currentBidderId);
+  document.getElementById('cbbBidder').textContent = bidder
+    ? (bidder.id === myId ? '🏆 你是当前最高出价' : `${bidder.name} 出价中`)
+    : '暂无出价';
+
+  // 进度点
+  const prog = document.getElementById('itemProgress');
+  prog.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'ip-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+    prog.appendChild(d);
+  }
+
+  // 状态提示
+  const amLeading = state.currentBidderId === myId;
+  document.getElementById('myBidStatus').textContent = amLeading
+    ? '🏆 你是当前最高出价者'
+    : `我的筹码：${player.chips}`;
+
+  // 出价按钮禁用（自己领先时）
+  document.getElementById('bidButtons').querySelectorAll('.bid-btn').forEach(btn => {
+    btn.disabled = amLeading;
+  });
+
+  // 主持人悬浮面板 + 台词提示（竞拍屏时显示）
+  document.getElementById('hostFloatPanel').style.display = isHost ? 'flex' : 'none';
+  const script = document.getElementById('hostScript');
+  if (script) script.style.display = isHost ? 'block' : 'none';
+
+  // 已拍到的东西
+  const wonItems = player.items_won;
+  const myWon = document.getElementById('myWon');
+  if (wonItems.length > 0) {
+    myWon.style.display = 'block';
+    document.getElementById('myWonItems').innerHTML = wonItems.map(w =>
+      `<span class="mw-tag">${w.text}（${w.paid}）</span>`
+    ).join('');
+  } else {
+    myWon.style.display = 'none';
+  }
+
+  renderPlayerChips();
+}
+
+function renderPlayerChips() {
+  const list = document.getElementById('playersChipsList');
+  if (!list) return;
+  list.innerHTML = '';
+  state.players.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'pc-item' + (p.id === myId ? ' pc-me' : '');
+    div.innerHTML = `<span class="pc-name">${p.name}${p.id === myId ? ' (我)' : ''}</span>
+      <span class="pc-items-count">${p.items_won.length}件</span>
+      <span class="pc-chips">${p.chips}</span>`;
+    list.appendChild(div);
+  });
+}
+
+function showGavel(msg) {
+  showScreen('gavelScreen');
+  if (msg.type === 'item_sold') {
+    document.getElementById('gavelIcon').textContent = '🔨';
+    document.getElementById('gavelResult').textContent = '落槌！';
+    document.getElementById('gavelItem').textContent = `「${msg.itemText}」`;
+    const isMe = state.players.find(p => p.name === msg.winner)?.id === myId;
+    document.getElementById('gavelDetail').textContent = isMe
+      ? `🎉 你拍到了！花了 ${msg.price} 筹码`
+      : `${msg.winner} 以 ${msg.price} 筹码拍得`;
+  } else {
+    document.getElementById('gavelIcon').textContent = '💨';
+    document.getElementById('gavelResult').textContent = '流拍';
+    document.getElementById('gavelItem').textContent = `「${msg.itemText}」`;
+    document.getElementById('gavelDetail').textContent = '无人竞拍，本件流拍';
+  }
+}
+
+function showResults() {
+  showScreen('resultsScreen');
+  const container = document.getElementById('resultsCards');
+  container.innerHTML = '';
+  const sorted = [...state.players].sort((a, b) => b.items_won.length - a.items_won.length);
+  sorted.forEach(p => {
+    const isMe = p.id === myId;
+    const card = document.createElement('div');
+    card.className = 'player-result-card';
+    const items = p.items_won.map(w =>
+      `<div class="prc-item">
+        <span class="prc-item-text">${w.text}</span>
+        <span class="prc-paid">${w.paid}筹</span>
+      </div>`
+    ).join('');
+    card.innerHTML = `
+      <div class="prc-header">
+        <span class="prc-name${isMe ? ' me' : ''}">${p.name}${isMe ? ' (我)' : ''}</span>
+        <span class="prc-chips">剩余 ${p.chips} 筹码</span>
+      </div>
+      <div class="prc-items">
+        ${items || '<p class="prc-empty">本局未拍到任何东西</p>'}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+// Enter 键支持
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); });
+function restoreSessionOnLoad() {
+  const savedName = roomSession.applyNicknameToInput('nameInput');
+  if (savedName) {
+    myName = savedName;
+    document.getElementById('confirmedName').textContent = myName;
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+  }
+  const savedRoom = roomSession.getRoom(GAME_KEY);
+  if (savedRoom && savedName) {
+    restoreRoomCode = savedRoom.roomCode;
+    restoreRetryCount = 0;
+    roomSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
+    connect(() => send({ type: 'join_room', roomCode: savedRoom.roomCode, ...roomSession.identityPayload(myName) }));
+  }
+}
+
+restoreSessionOnLoad();
+
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); });
+document.getElementById('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+document.getElementById('customBidInput').addEventListener('keydown', e => { if (e.key === 'Enter') customBid(); });
+</script>
+</body>
+</html>
