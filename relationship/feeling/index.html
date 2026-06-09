@@ -1164,13 +1164,16 @@
         gameState.playerGuesses=[];
         document.getElementById('resultPanel').innerHTML='';
         document.getElementById('resultPanel').classList.add('hidden');
+        // F-4: 重置 confirmBtn.onclick，防止下一轮猜测者点确认时误发 reveal
         confirmBtn.classList.add('hidden');
+        confirmBtn.textContent='确认选择';
+        confirmBtn.onclick=handleConfirm;
         startBtn.classList.add('hidden');
         startBtn.innerText='开始游戏';
         startBtn.onclick=startGame;
         centerStatus.innerText='Waiting…';
-        generateCardSet();
-        renderCards();
+        // F-2: 不在此处生成卡牌！等新的 guess_round_start 到来再由主角同步过来
+        // generateCardSet() 和 renderCards() 刻意删除
         feelingMpUpdateCtrl();
       }
       else if(msg.type==='error'){document.getElementById('feelingMpJErr').textContent=msg.message;}
@@ -1193,21 +1196,8 @@
     }
     function feelingPrepareNextRound(){
       feelingSend({type:'guess_next_round'});
-      feelingMpIsSubject=false;
-      gameState.phase='idle';
-      gameState.playerASelection=null;
-      gameState.currentGuessSelection=null;
-      gameState.playerGuesses=[];
-      document.getElementById('resultPanel').innerHTML='';
-      document.getElementById('resultPanel').classList.add('hidden');
-      confirmBtn.classList.add('hidden');
-      startBtn.classList.add('hidden');
-      startBtn.innerText='开始游戏';
-      startBtn.onclick=startGame;
-      centerStatus.innerText='Waiting…';
-      generateCardSet();
-      renderCards();
-      feelingMpUpdateCtrl();
+      // 发起方走 guess_reset 处理（服务端 bcast 会发给自己），不在此重复重置
+      // 只负责发送消息，让 guess_reset handler 统一处理 UI
     }
 
     function feelingMpUpdateCtrl(subjectName){

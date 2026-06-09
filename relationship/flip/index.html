@@ -595,7 +595,24 @@
         document.getElementById('nextBtn').style.display='inline-block';
         document.getElementById('nextBtn').onclick=flipPrepareNextRound;
       }
-      else if(msg.type==='guess_reset'){flipMpIsSubject=false;flipMpUpdateCtrl();}
+      else if(msg.type==='guess_reset'){
+        flipMpIsSubject=false;
+        selectArr=[];
+        currentCards=[];
+        allPlayerSelect=[];
+        document.getElementById('result').innerHTML='';
+        document.getElementById('cardBox').innerHTML='';
+        document.getElementById('nextBtn').style.display='none';
+        // P-3: 重置 sureBtn，防止下一轮此玩家变猜测者时点确认误发 reveal
+        const sureBtn=document.getElementById('sureBtn');
+        sureBtn.disabled=true;
+        sureBtn.textContent='确认选择';
+        sureBtn.onclick=sureSelect;
+        // P-1: 回到等待屏，让大家能看到"这轮我来"按钮
+        document.getElementById('gameScreen').style.display='none';
+        document.getElementById('countScreen').style.display='block';
+        flipMpUpdateCtrl();
+      }
       else if(msg.type==='error'){flipSession.showConnectionStatus('failed',msg.message||'连接失败，请重试');if(flipRetryRestoreAfterNameCollision(msg.message))return;document.getElementById('flipMpJErr').textContent=msg.message;}
     }
     function flipRetryRestoreAfterNameCollision(message){

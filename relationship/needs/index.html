@@ -577,6 +577,20 @@ function refreshAllNeeds() {
 }
 
 function confirmBet() {
+  // N-1: 合并联机/离线逻辑，消除双重声明
+  if (needsInMp) {
+    if (isPhaseA) {
+      needsSend({type:'guess_subject_done', selection: heartA});
+      needsAfterA = [...currentNeeds];
+      document.getElementById('confirmBtn').disabled = true;
+      document.getElementById('confirmBtn').textContent = '✅ 已提交，等待其他人猜测…';
+    } else {
+      needsSend({type:'guess_player_guess', guess: heartB});
+      document.getElementById('confirmBtn').disabled = true;
+      document.getElementById('confirmBtn').textContent = '✅ 已提交猜测';
+    }
+    return;
+  }
   if (isPhaseA) {
     needsAfterA = [...currentNeeds];
     showScreen('handoffScreen');
@@ -638,24 +652,6 @@ function nextRound() {
   showScenario();
 }
 
-// ── 联机：在 confirmBet 里插入 MP 逻辑 ──
-const _origConfirm = confirmBet;
-function confirmBet() {
-  if (!needsInMp) { _origConfirm(); return; }
-  if (isPhaseA) {
-    // 主角选好了：发给服务器（隐藏），让其他人猜
-    needsSend({type:'guess_subject_done', selection: heartA});
-    needsAfterA = [...currentNeeds];
-    // 主角看"等待他人猜测"
-    document.getElementById('confirmBtn').disabled = true;
-    document.getElementById('confirmBtn').textContent = '✅ 已提交，等待其他人猜测…';
-  } else {
-    // B 猜好了：发给服务器
-    needsSend({type:'guess_player_guess', guess: heartB});
-    document.getElementById('confirmBtn').disabled = true;
-    document.getElementById('confirmBtn').textContent = '✅ 已提交猜测';
-  }
-}
 
 </script>
 
@@ -753,7 +749,8 @@ function needsMpMsg(msg) {
   else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){needsState=msg.state;needsMpRender(msg.state);}
   else if(msg.type==='guess_subject_set'){
     // 有人成为了本轮A
-    needsMpIsSubject = msg.state?.players?.find(p=>p.id===needsMyId)?.id === msg.state?.guessState?.subjectId;
+    // N-2: sanitize() 不含 guessState，改用名字比较（和 feeling/flip 一致）
+    needsMpIsSubject = msg.subjectName === needsMyName;
     needsMpUpdateScenario(msg.subjectName);
   }
   else if(msg.type==='guess_round_start'){
@@ -803,6 +800,15 @@ function needsMpMsg(msg) {
   }
   else if(msg.type==='guess_reset'){
     needsMpIsSubject=false;
+    // N-3: 所有端都回到场景初始状态
+    heartA={}; heartB={};
+    isPhaseA=true;
+    currentScenario=null;
+    currentNeeds=[];
+    // 重置 confirmBtn，防止下一轮误发 guess_reveal（N-3 附带）
+    const cb=document.getElementById('confirmBtn');
+    if(cb){ cb.textContent='确认押注'; cb.disabled=true; cb.onclick=confirmBet; }
+    showScreen('startScreen');
     needsMpUpdateScenario();
   }
   else if(msg.type==='error'){needsSession.showConnectionStatus('failed',msg.message||'连接失败，请重试');if(needsRetryRestoreAfterNameCollision(msg.message))return;document.getElementById('needsMpJErr').textContent=msg.message;}
