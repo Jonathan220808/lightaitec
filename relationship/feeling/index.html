@@ -1132,18 +1132,47 @@
         const subWord=gameState.currentCards[subIdx]?.word || '';
         const guessEntries=Object.values(msg.guesses||{});
         gameState.phase='finished';
+        // 揭晓卡牌高亮
+        document.querySelectorAll('.card').forEach((card,i)=>{
+          card.classList.remove('selected');
+          if(i===subIdx) card.classList.add('revealed');
+        });
         const resultPanel=document.getElementById('resultPanel');
         resultPanel.classList.remove('hidden');
-        let html=`<div style="font-size:15px;font-weight:700;margin-bottom:12px;">??A????<b style="color:var(--accent)">${subWord}</b></div>`;
+        let html=`<div style="font-size:15px;font-weight:700;margin-bottom:12px;">A 的情绪是：<b style="color:var(--accent)">「${subWord}」</b></div>`;
+        let allMatch=true;
         guessEntries.forEach(g=>{
           const guessWord=gameState.currentCards[g.guess]?.word || '';
           const match=g.guess===subIdx;
-          html+=`<div style="font-size:14px;margin-bottom:6px;">${g.name}?${guessWord} ${match?'? ???':'?? ???'}</div>`;
+          if(!match) allMatch=false;
+          html+=`<div style="font-size:14px;margin-bottom:6px;">${g.name} 猜了「${guessWord}」 ${match?'✅ 猜对了':'❌ 没猜中'}</div>`;
         });
         resultPanel.innerHTML=html;
-        startBtn.classList.remove('hidden');startBtn.innerText='????';
+        if(allMatch) createConfetti();
+        // 联机下一轮
+        startBtn.classList.remove('hidden');
+        startBtn.innerText='下一轮';
+        startBtn.onclick=feelingPrepareNextRound;
+        confirmBtn.classList.add('hidden');
+        centerStatus.innerText='ROUND END';
       }
-      else if(msg.type==='guess_reset'){feelingMpIsSubject=false;feelingMpUpdateCtrl();}
+      else if(msg.type==='guess_reset'){
+        feelingMpIsSubject=false;
+        gameState.phase='idle';
+        gameState.playerASelection=null;
+        gameState.currentGuessSelection=null;
+        gameState.playerGuesses=[];
+        document.getElementById('resultPanel').innerHTML='';
+        document.getElementById('resultPanel').classList.add('hidden');
+        confirmBtn.classList.add('hidden');
+        startBtn.classList.add('hidden');
+        startBtn.innerText='开始游戏';
+        startBtn.onclick=startGame;
+        centerStatus.innerText='Waiting…';
+        generateCardSet();
+        renderCards();
+        feelingMpUpdateCtrl();
+      }
       else if(msg.type==='error'){document.getElementById('feelingMpJErr').textContent=msg.message;}
     }
 
@@ -1162,6 +1191,25 @@
         list.appendChild(d);
       });
     }
+    function feelingPrepareNextRound(){
+      feelingSend({type:'guess_next_round'});
+      feelingMpIsSubject=false;
+      gameState.phase='idle';
+      gameState.playerASelection=null;
+      gameState.currentGuessSelection=null;
+      gameState.playerGuesses=[];
+      document.getElementById('resultPanel').innerHTML='';
+      document.getElementById('resultPanel').classList.add('hidden');
+      confirmBtn.classList.add('hidden');
+      startBtn.classList.add('hidden');
+      startBtn.innerText='开始游戏';
+      startBtn.onclick=startGame;
+      centerStatus.innerText='Waiting…';
+      generateCardSet();
+      renderCards();
+      feelingMpUpdateCtrl();
+    }
+
     function feelingMpUpdateCtrl(subjectName){
       const ctrl=document.getElementById('feelingMpCtrl');
       const mpBtn=document.getElementById('feelingMpBtn');
