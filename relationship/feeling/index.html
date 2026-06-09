@@ -582,7 +582,7 @@
     <div class="count-header">
       <p class="label">关系游戏 · 02</p>
       <h1>情绪特工队</h1>
-      <p>玩家1选情绪，其他人来猜——选择游戏人数</p>
+      <p id="countScreenDesc">情绪主选情绪，其他人来猜——选择游戏人数</p>
       <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-top:10px;">线下同屏玩：不用点“联机玩”，选人数后按提示轮流递手机；不在一起或想各用各的手机时再用联机。</p>
     </div>
     <div class="count-btns">
@@ -901,8 +901,8 @@
       generateCardSet();
       renderCards();
       startBtn.classList.add('hidden');
-      centerStatus.innerText = 'PLAYER 1';
-      showToast('玩家1：请选择一个当下的情绪', 4000);
+      centerStatus.innerText = feelingInMp ? '情绪主' : 'PLAYER 1';
+      showToast(feelingInMp ? '你是情绪主，请选一个当下的情绪' : '玩家1：请选择一个当下的情绪', 4000);
       if(feelingInMp && feelingMpIsSubject)
         feelingSend({type:'guess_round_data', roundData:{cards: gameState.currentCards}});
     }
@@ -1059,7 +1059,7 @@
         <p style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;">已加入 <span id="feelingMpCnt">0</span> 人</p>
         <div id="feelingMpPlist"></div>
       </div>
-      <p style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px;">进入后，任意玩家点「这轮我来」成为玩家A</p>
+      <p style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px;">进入后，任意玩家点「这轮我来选情绪」担任情绪主</p>
       <button onclick="feelingMpEnter()" style="width:100%;padding:15px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">进入游戏 →</button>
     </div>
   </div>
@@ -1068,7 +1068,7 @@
   <script>
     const FEELING_WS='wss://lightaitec.com/relationship/feeling/ws';
     const feelingSession=window.RelationshipSession;
-    let feelingInMp=false,feelingWs=null,feelingMyId=null,feelingMyName='',feelingIsHost=false,feelingMpIsSubject=false;
+    let feelingInMp=false,feelingWs=null,feelingMyId=null,feelingMyName='',feelingIsHost=false,feelingMpIsSubject=false,feelingRoomState=null;
 
     function openFeelingMp(){document.getElementById('feelingMpOverlay').style.display='block';}
     function closeFeelingMp(){document.getElementById('feelingMpOverlay').style.display='none';}
@@ -1097,10 +1097,15 @@
     function feelingMpEnter(){
       feelingInMp=true;
       closeFeelingMp();
+      // 联机模式：隐藏"2人/3人/4人"选择按钮，人数由房间自动决定
+      document.querySelector('#countScreen .count-btns').style.display='none';
+      // 更新头部说明文字
+      const desc=document.getElementById('countScreenDesc');
+      if(desc) desc.textContent='联机模式 · 任意玩家点下方按钮成为情绪主';
       feelingMpUpdateCtrl();
-      // 联机模式：玩家A刷新时同步卡牌给所有人
+      // 联机模式：情绪主刷新时同步卡牌给所有人
       refreshAllBtn.onclick=()=>{
-        if(!feelingMpIsSubject){showToast('只有玩家A才能刷新题库');return;}
+        if(!feelingMpIsSubject){showToast('只有情绪主才能刷新题库');return;}
         if(gameState.phase!=='playerA'){showToast('只能在选择前刷新');return;}
         generateCardSet();
         renderCards();
@@ -1110,9 +1115,9 @@
     }
 
     function feelingMpMsg(msg){
-      if(msg.type==='room_created'){feelingMyId=msg.state.players[0].id;feelingMpShowLobby(msg.state);}
-      else if(msg.type==='joined'||msg.type==='rejoined'){feelingMyId=msg.state.players.find(p=>p.name===feelingMyName)?.id;feelingMpShowLobby(msg.state);}
-      else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){feelingMpRender(msg.state);}
+      if(msg.type==='room_created'){feelingMyId=msg.state.players[0].id;feelingRoomState=msg.state;feelingMpShowLobby(msg.state);}
+      else if(msg.type==='joined'||msg.type==='rejoined'){feelingMyId=msg.state.players.find(p=>p.name===feelingMyName)?.id;feelingRoomState=msg.state;feelingMpShowLobby(msg.state);}
+      else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){feelingRoomState=msg.state;feelingMpRender(msg.state);}
       else if(msg.type==='guess_subject_set'){
         feelingMpIsSubject=msg.subjectName===feelingMyName;
         feelingMpUpdateCtrl(msg.subjectName);
@@ -1128,11 +1133,11 @@
       }
       else if(msg.type==='guess_others_turn'){
         if(!feelingMpIsSubject){
-          gameState.phase='playerGuess';gameState.totalPlayers=2;gameState.currentGuesserIdx=0;
+          gameState.phase='playerGuess';gameState.totalPlayers=feelingRoomState?.players?.length||2;gameState.currentGuesserIdx=0;
           renderCards();
           confirmBtn.classList.remove('hidden');
-          centerStatus.innerText='PLAYER 2';
-          showToast('玩家A已选好，你来猜猜是哪个情绪',4000);
+          centerStatus.innerText='猜情绪';
+          showToast('情绪主已选好，你来猜猜是哪个情绪？',4000);
         }
       }
       else if(msg.type==='guess_player_ready'&&feelingMpIsSubject){
@@ -1186,9 +1191,9 @@
         centerStatus.innerText='Waiting…';
         // 清除旧卡牌，避免双方看到不同状态
         document.querySelectorAll('.card').forEach(c=>c.remove());
-        // 显示 countScreen，让「这轮我来」按钮重新可见（它在 countScreen 内部）
+        // 显示 countScreen，让「这轮我来选情绪」按钮重新可见（它在 countScreen 内部）
+        // 人数选择按钮在 feelingMpEnter 时已隐藏，这里只恢复 countScreen 显示
         document.getElementById('countScreen').style.display='flex';
-        document.getElementById('modeTag').classList.add('hidden');
         feelingMpUpdateCtrl();
       }
       else if(msg.type==='error'){document.getElementById('feelingMpJErr').textContent=msg.message;}
@@ -1221,20 +1226,22 @@
       if(!feelingInMp){ctrl.style.display='none';return;}
       mpBtn.style.display='none';
       if(!subjectName){
-        ctrl.innerHTML=`<button onclick="feelingMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来！（我当玩家A）</button>`;
+        ctrl.innerHTML=`<button onclick="feelingMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来选情绪！</button>`;
         ctrl.style.display='block';
       } else if(feelingMpIsSubject){
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(180,104,128,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">你是本轮玩家A，点上方「2人游戏」开始！</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(180,104,128,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">✅ 你是本轮情绪主，请在卡牌中选一个</p>`;
         ctrl.style.display='block';
       } else {
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(232,227,219,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 是本轮A，等待TA选好情绪…</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(232,227,219,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 正在选情绪，选好后你来猜…</p>`;
         ctrl.style.display='block';
       }
     }
     function feelingMpVolunteer(){
       feelingMpIsSubject=true;
       feelingSend({type:'guess_volunteer'});
-      startWithCount(2); // 隐藏 countScreen，生成新卡牌，发送 guess_round_data
+      // 使用实际房间人数，不写死2人（支持3、4、5、6人联机）
+      const count = feelingRoomState?.players?.length || 2;
+      startWithCount(count);
     }
   </script>
 </body>
