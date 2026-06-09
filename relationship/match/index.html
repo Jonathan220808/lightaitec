@@ -547,11 +547,16 @@ function renderKeyword() {
 function goStart()  { showScreen('startScreen'); }
 function goKeyword(){ renderKeyword(); showScreen('keywordScreen'); }
 
+function preloadAll() {
+  IMAGES.forEach(src => { new Image().src = IMG_DIR + src; });
+}
+
 function startGame() {
   usedKeywords.clear();
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
+  preloadAll();
 }
 function newKeyword() {
   pickNewKeyword();
@@ -566,14 +571,6 @@ function startSelect() {
   selected = [];
   renderSelect();
   showScreen('selectScreen');
-  // 第一张图已在 renderSelect 里触发加载，之后按浏览顺序逐张预加载
-  setTimeout(() => preloadSequential(1), 200);
-}
-function preloadSequential(idx) {
-  if (idx >= browseOrder.length) return;
-  const im = new Image();
-  im.onload = im.onerror = () => preloadSequential(idx + 1);
-  im.src = IMG_DIR + IMAGES[browseOrder[idx]];
 }
 function setImg(src) {
   const img = document.getElementById('bigImg');
