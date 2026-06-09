@@ -543,7 +543,16 @@
       if(!c||c.length!==4){document.getElementById('flipMpJErr').textContent='请输入4位房间号';return;}
       flipConnect(()=>flipSend({type:'join_room',roomCode:c,...flipSession.identityPayload(flipMyName)}));
     }
-    function flipMpEnter(){flipInMp=true;closeFlipMp();flipMpUpdateCtrl();}
+    function flipMpEnter(){
+      flipInMp=true;
+      closeFlipMp();
+      // 联机模式：隐藏人数选择按钮，人数由房间自动决定
+      const countBtns=document.querySelector('#countScreen .count-btns');
+      if(countBtns) countBtns.style.display='none';
+      const desc=document.querySelector('#countScreen > p');
+      if(desc) desc.textContent='联机模式 · 任意玩家点下方按钮成为出题人';
+      flipMpUpdateCtrl();
+    }
 
     function flipMpMsg(msg){
       if(msg.type==='room_created'){flipMyId=msg.state.players[0].id;flipState=msg.state;flipRememberRoom();flipMpShowLobby(msg.state);}
@@ -558,11 +567,12 @@
           document.getElementById('countScreen').style.display='none';
           document.getElementById('gameScreen').style.display='block';
           document.getElementById('modeTag').textContent='联机猜测';
-          selectArr=[]; currentPlayer=2; totalPlayer=2;
+          const roomCount=flipState?.players?.length||2;
+          selectArr=[]; currentPlayer=2; totalPlayer=roomCount;
           let html='';
           for(let i=0;i<5;i++) html+=`<div class="card" onclick="chooseCard(${i},this)"><p>${currentCards[i]}</p></div>`;
           document.getElementById('cardBox').innerHTML=html;
-          document.getElementById('tip').innerText='玩家1已就绪，猜猜TA选了哪2张';
+          document.getElementById('tip').innerText='出题人已就绪，猜猜TA选了哪2张';
           document.getElementById('sureBtn').disabled=true;
           document.getElementById('sureBtn').textContent='确认猜测';
           document.getElementById('nextBtn').style.display='none';
@@ -657,13 +667,13 @@
       if(!flipInMp){ctrl.style.display='none';return;}
       document.getElementById('flipMpBtn').style.display='none';
       if(!subjectName){
-        ctrl.innerHTML=`<button onclick="flipMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来！（我当玩家1）</button>`;
+        ctrl.innerHTML=`<button onclick="flipMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来出题！</button>`;
         ctrl.style.display='block';
       } else if(flipMpIsSubject){
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(93,143,114,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">你是本轮玩家1，点上方「2人游戏」开始！</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(93,143,114,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">✅ 你是本轮出题人，请选 2 张描述自己的卡牌</p>`;
         ctrl.style.display='block';
       } else {
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(244,248,245,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 是本轮玩家1，等待TA选牌…</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(244,248,245,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 正在出题，选好后你来猜…</p>`;
         ctrl.style.display='block';
       }
     }
@@ -702,7 +712,11 @@
     }
     flipRestoreSessionOnLoad();
     function flipMpVolunteer(){
-      flipMpIsSubject=true;flipSend({type:'guess_volunteer'});flipMpUpdateCtrl('me');startWithCount(2);
+      flipMpIsSubject=true;
+      flipSend({type:'guess_volunteer'});
+      // 使用实际房间人数，不写死2人
+      const count=flipState?.players?.length||2;
+      startWithCount(count);
     }
   </script>
 </body>

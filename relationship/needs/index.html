@@ -857,12 +857,12 @@ function needsMpUpdateScenario(subjectName) {
   const betBtn=document.getElementById('scenarioBetABtn');
   if(!subjectName){
     // 没人当A，显示"这轮我来"
-    ctrl.innerHTML=`<button class="btn btn-primary" style="margin-bottom:8px" onclick="needsMpVolunteer()">这轮我来！（我当A）</button>`;
+    ctrl.innerHTML=`<button class="btn btn-primary" style="margin-bottom:8px" onclick="needsMpVolunteer()">这轮我来出题！（我当 A）</button>`;
     ctrl.style.display='block'; betBtn.style.display='none';
   } else if(needsMpIsSubject){
     ctrl.style.display='none'; betBtn.style.display='block';
   } else {
-    ctrl.innerHTML=`<div class="mp-wait-box"><p>${subjectName} 是本轮A，等待TA押注…</p></div>`;
+    ctrl.innerHTML=`<div class="mp-wait-box"><p>${subjectName} 是本轮出题人，等待TA押注…</p></div>`;
     ctrl.style.display='block'; betBtn.style.display='none';
   }
 }

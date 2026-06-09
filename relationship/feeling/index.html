@@ -609,7 +609,8 @@
   <div id="questionBar" class="question-bar">
     <div class="qbar-header">
       <span class="qbar-game-title">情绪特工队</span>
-      <button class="qbar-exit" onclick="exitQuestionMode()">退出题库</button>
+      <button class="qbar-exit" onclick="drawQuestion()">换一题</button>
+      <button class="qbar-exit" onclick="exitQuestionMode()">收起</button>
     </div>
     <p id="qbarText" class="qbar-text"></p>
   </div>
@@ -623,6 +624,7 @@
       <h1>情绪特工队</h1>
       <p>连接心灵的情绪共鸣</p>
       <span id="modeTag" class="hidden"></span>
+      <button onclick="drawQuestion()" style="margin-top:10px;font-size:12px;color:var(--muted);background:none;border:1px solid rgba(154,128,112,.3);border-radius:20px;padding:5px 14px;cursor:pointer;font-family:inherit;">▸ 换一道场景题</button>
     </div>
 
     <div class="cards-orbit" id="cardContainer">
@@ -901,8 +903,8 @@
       generateCardSet();
       renderCards();
       startBtn.classList.add('hidden');
-      centerStatus.innerText = feelingInMp ? '情绪主' : 'PLAYER 1';
-      showToast(feelingInMp ? '你是情绪主，请选一个当下的情绪' : '玩家1：请选择一个当下的情绪', 4000);
+      centerStatus.innerText = feelingInMp ? '出题人' : 'PLAYER 1';
+      showToast(feelingInMp ? '你是出题人，请选一个当下的情绪' : '玩家1：请选择一个当下的情绪', 4000);
       if(feelingInMp && feelingMpIsSubject)
         feelingSend({type:'guess_round_data', roundData:{cards: gameState.currentCards}});
     }
@@ -1059,7 +1061,7 @@
         <p style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;">已加入 <span id="feelingMpCnt">0</span> 人</p>
         <div id="feelingMpPlist"></div>
       </div>
-      <p style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px;">进入后，任意玩家点「这轮我来选情绪」担任情绪主</p>
+      <p style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px;">进入后，任意玩家点「这轮我来出题」担任出题人</p>
       <button onclick="feelingMpEnter()" style="width:100%;padding:15px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">进入游戏 →</button>
     </div>
   </div>
@@ -1101,11 +1103,11 @@
       document.querySelector('#countScreen .count-btns').style.display='none';
       // 更新头部说明文字
       const desc=document.getElementById('countScreenDesc');
-      if(desc) desc.textContent='联机模式 · 任意玩家点下方按钮成为情绪主';
+      if(desc) desc.textContent='联机模式 · 任意玩家点下方按钮成为出题人';
       feelingMpUpdateCtrl();
       // 联机模式：情绪主刷新时同步卡牌给所有人
       refreshAllBtn.onclick=()=>{
-        if(!feelingMpIsSubject){showToast('只有情绪主才能刷新题库');return;}
+        if(!feelingMpIsSubject){showToast('只有出题人可以刷新题库');return;}
         if(gameState.phase!=='playerA'){showToast('只能在选择前刷新');return;}
         generateCardSet();
         renderCards();
@@ -1226,13 +1228,13 @@
       if(!feelingInMp){ctrl.style.display='none';return;}
       mpBtn.style.display='none';
       if(!subjectName){
-        ctrl.innerHTML=`<button onclick="feelingMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来选情绪！</button>`;
+        ctrl.innerHTML=`<button onclick="feelingMpVolunteer()" style="width:100%;padding:13px;border-radius:13px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">这轮我来出题！</button>`;
         ctrl.style.display='block';
       } else if(feelingMpIsSubject){
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(180,104,128,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">✅ 你是本轮情绪主，请在卡牌中选一个</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(180,104,128,.1);padding:10px 16px;border-radius:10px;color:var(--accent);font-weight:700;">✅ 你是本轮出题人，请在卡牌中选一个</p>`;
         ctrl.style.display='block';
       } else {
-        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(232,227,219,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 正在选情绪，选好后你来猜…</p>`;
+        ctrl.innerHTML=`<p style="font-size:13px;background:rgba(232,227,219,.8);padding:10px 16px;border-radius:10px;color:var(--muted);">${subjectName} 正在出题，选好后你来猜…</p>`;
         ctrl.style.display='block';
       }
     }
