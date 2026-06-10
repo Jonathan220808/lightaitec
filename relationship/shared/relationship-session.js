@@ -197,6 +197,15 @@
       return text.includes('昵称已被使用') || text.toLowerCase().includes('nickname');
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     return {
       DEFAULT_ROOM_TTL_MS,
       PROFILE_KEY,
@@ -212,6 +221,7 @@
       applyNicknameToInput,
       showConnectionStatus,
       isRetryableRestoreError,
+      escapeHtml,
     };
   }
 

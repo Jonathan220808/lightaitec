@@ -333,6 +333,7 @@
   </div>
   <div class="reveal-grid" id="revealGrid"></div>
   <div class="reveal-prompt"><p id="revealPrompt"></p></div>
+  <div id="mpGuessSummary" style="display:none;margin:0 16px 12px;"></div>
   <div class="btn-row">
     <button class="btn btn-primary" id="nextBtn" onclick="nextRound()"></button>
     <a href="../" class="btn btn-ghost" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">回到首页</a>
@@ -354,6 +355,7 @@
 
 <script>
 const TOTAL_HEARTS = 3;
+const MAX_ROUNDS = 5;
 
 const needsPool = [
   "被听见","被理解","被认可","被记住细节","被夸","被接住情绪",
@@ -438,7 +440,14 @@ function startGame() {
 }
 
 function showScenario() {
-  document.getElementById('progressLabel').textContent = `第 ${currentRound + 1} 轮`;
+  const dotsEl = document.getElementById('progressDots');
+  dotsEl.innerHTML = '';
+  for(let i = 0; i < MAX_ROUNDS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i < currentRound ? ' done' : i === currentRound ? ' current' : '');
+    dotsEl.appendChild(dot);
+  }
+  document.getElementById('progressLabel').textContent = `第 ${currentRound + 1} / ${MAX_ROUNDS} 轮`;
   document.getElementById('scenarioText').textContent = currentScenario.text;
   showScreen('scenarioScreen');
 }
@@ -643,11 +652,32 @@ function showReveal() {
 
   document.getElementById('nextBtn').textContent = '下一个场景 →';
 
+  const mpSummaryEl = document.getElementById('mpGuessSummary');
+  if(needsInMp && Object.keys(needsMpAllGuesses).length > 0){
+    let summaryHtml = '<div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">所有玩家的猜测</div>';
+    Object.values(needsMpAllGuesses).forEach(g=>{
+      const guess = g.guess || {};
+      const matches = displayNeeds.filter(n=>(guess[n]||0)===(heartA[n]||0)).length;
+      summaryHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(154,128,112,.1);font-size:13px;">
+        <span>${needsSession.escapeHtml(g.name)}</span>
+        <span>${matches}/${displayNeeds.length} 猜中</span></div>`;
+    });
+    mpSummaryEl.innerHTML = summaryHtml;
+    mpSummaryEl.style.display = 'block';
+  } else {
+    mpSummaryEl.style.display = 'none';
+  }
+
   showScreen('revealScreen');
 }
 
 function nextRound() {
+  if(needsInMp) {
+    needsSend({type:'guess_next_round'});
+    return;
+  }
   currentRound++;
+  if(currentRound >= MAX_ROUNDS) { showScreen('endScreen'); return; }
   pickNewScenario();
   showScenario();
 }
@@ -699,7 +729,7 @@ function nextRound() {
 const NEEDS_WS = 'wss://lightaitec.com/relationship/needs/ws';
 const NEEDS_GAME_KEY = 'needs';
 const needsSession = window.RelationshipSession;
-let needsInMp=false, needsWs=null, needsMyId=null, needsMyName='', needsIsHost=false, needsMpIsSubject=false, needsState=null, needsIntentionalClose=false, needsRestoreRoomCode='', needsRestoreRetryCount=0;
+let needsInMp=false, needsWs=null, needsMyId=null, needsMyName='', needsIsHost=false, needsMpIsSubject=false, needsState=null, needsIntentionalClose=false, needsRestoreRoomCode='', needsRestoreRetryCount=0, needsMpAllGuesses={};
 
 function openNeedsMp() { document.getElementById('needsMpOverlay').classList.add('open'); }
 function closeNeedsMp() { document.getElementById('needsMpOverlay').classList.remove('open'); }
@@ -748,10 +778,9 @@ function needsMpMsg(msg) {
   else if(msg.type==='joined'||msg.type==='rejoined'){needsMyId=msg.state.players.find(p=>p.name===needsMyName)?.id;needsState=msg.state;needsRememberRoom();needsSession.showConnectionStatus('restored','已回到房间');needsMpShowLobby(msg.state);}
   else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){needsState=msg.state;needsMpRender(msg.state);}
   else if(msg.type==='guess_subject_set'){
-    // 有人成为了本轮A
-    // N-2: sanitize() 不含 guessState，改用名字比较（和 feeling/flip 一致）
     needsMpIsSubject = msg.subjectName === needsMyName;
     needsMpUpdateScenario(msg.subjectName);
+    if(needsMpIsSubject){ pickNewScenario(); showScenario(); }
   }
   else if(msg.type==='guess_round_start'){
     // A发来了场景+牌局数据，其他人切换到猜测模式
@@ -789,10 +818,10 @@ function needsMpMsg(msg) {
     }
   }
   else if(msg.type==='guess_revealed'){
-    // 揭晓：显示A的选择 vs 所有人的猜测
     heartA = msg.subjectData || {};
+    needsMpAllGuesses = msg.guesses || {};
     if(!needsMpIsSubject){
-      const guessEntry = Object.values(msg.guesses||{}).find(g=>g.name===needsMyName);
+      const guessEntry = Object.values(needsMpAllGuesses).find(g=>g.name===needsMyName);
       heartB = guessEntry?.guess || {};
     }
     needsAfterA = [...currentNeeds];
@@ -847,7 +876,7 @@ function needsMpRender(state) {
   const list=document.getElementById('needsMpPlist'); list.innerHTML='';
   state.players.forEach((p,i)=>{
     const d=document.createElement('div'); d.className='mp-pitem';
-    d.innerHTML=`<span class="mp-pdot"></span><span>${p.name}${p.id===needsMyId?' (我)':''}</span><span class="mp-ptag">${i===0?'主持人':''}</span>`;
+    d.innerHTML=`<span class="mp-pdot"></span><span>${needsSession.escapeHtml(p.name)}${p.id===needsMyId?' (我)':''}</span><span class="mp-ptag">${i===0?'主持人':''}</span>`;
     list.appendChild(d);
   });
 }
@@ -887,11 +916,7 @@ function needsRestoreSessionOnLoad() {
 }
 needsRestoreSessionOnLoad();
 function needsMpVolunteer() {
-  needsMpIsSubject=true;
   needsSend({type:'guess_volunteer'});
-  pickNewScenario();
-  showScenario();
-  needsMpUpdateScenario('me');
 }
 </script>
 </body>

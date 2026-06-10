@@ -560,6 +560,7 @@
       else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){flipState=msg.state;flipMpRender(msg.state);}
       else if(msg.type==='guess_subject_set'){
         flipMpIsSubject=msg.subjectName===flipMyName;flipMpUpdateCtrl(msg.subjectName);
+        if(flipMpIsSubject){const count=flipState?.players?.length||2;startWithCount(count);}
       }
       else if(msg.type==='guess_round_start'){
         if(!flipMpIsSubject){
@@ -597,9 +598,9 @@
         let resText=`<span style="color:var(--muted);font-size:14px">玩家1的选择：「${currentCards[subSel[0]]}」和「${currentCards[subSel[1]]}」</span><br/><br/>`;
         guesses.forEach(g=>{
           const ps=g.guess||[]; const matchCount=ps.filter(i=>subSel.includes(i)).length;
-          if(matchCount===2) resText+=`✅ ${g.name}：全猜对了！<br/>`;
-          else if(matchCount===1) resText+=`🌓 ${g.name}：猜中了一张「${currentCards[ps.find(i=>subSel.includes(i))]}」<br/>`;
-          else resText+=`🤍 ${g.name}：这次没猜中<br/>`;
+          if(matchCount===2) resText+=`✅ ${flipSession.escapeHtml(g.name)}：全猜对了！<br/>`;
+          else if(matchCount===1) resText+=`🌓 ${flipSession.escapeHtml(g.name)}：猜中了一张「${currentCards[ps.find(i=>subSel.includes(i))]}」<br/>`;
+          else resText+=`🤍 ${flipSession.escapeHtml(g.name)}：这次没猜中<br/>`;
         });
         document.getElementById('result').innerHTML=resText;
         document.getElementById('nextBtn').style.display='inline-block';
@@ -658,7 +659,7 @@
       const list=document.getElementById('flipMpPlist');list.innerHTML='';
       state.players.forEach((p,i)=>{
         const d=document.createElement('div');d.style.cssText='display:flex;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid rgba(154,128,112,.1);';
-        d.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:9px;flex-shrink:0;display:inline-block;"></span><span>${p.name}${p.id===flipMyId?' (我)':''}</span><span style="margin-left:auto;font-size:11px;color:var(--muted);">${i===0?'主持人':''}</span>`;
+        d.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:9px;flex-shrink:0;display:inline-block;"></span><span>${flipSession.escapeHtml(p.name)}${p.id===flipMyId?' (我)':''}</span><span style="margin-left:auto;font-size:11px;color:var(--muted);">${i===0?'主持人':''}</span>`;
         list.appendChild(d);
       });
     }
@@ -712,11 +713,7 @@
     }
     flipRestoreSessionOnLoad();
     function flipMpVolunteer(){
-      flipMpIsSubject=true;
       flipSend({type:'guess_volunteer'});
-      // 使用实际房间人数，不写死2人
-      const count=flipState?.players?.length||2;
-      startWithCount(count);
     }
   </script>
 </body>

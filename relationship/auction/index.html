@@ -563,7 +563,7 @@ function renderLobby() {
     const div = document.createElement('div');
     div.className = 'pl-item';
     div.innerHTML = `<div class="pl-dot ${p.connected ? '' : 'offline'}"></div>
-      <span class="pl-name">${p.name}${p.id === myId ? ' (我)' : ''}</span>
+      <span class="pl-name">${roomSession.escapeHtml(p.name)}${p.id === myId ? ' (我)' : ''}</span>
       <span class="pl-tag">${i === 0 ? '主持人' : ''}</span>`;
     list.appendChild(div);
   });
@@ -635,6 +635,7 @@ function renderBidding() {
   document.getElementById('bidButtons').querySelectorAll('.bid-btn').forEach(btn => {
     btn.disabled = amLeading;
   });
+  document.getElementById('customBidInput').disabled = amLeading;
 
   // 主持人悬浮面板 + 台词提示（竞拍屏时显示）
   document.getElementById('hostFloatPanel').style.display = isHost ? 'flex' : 'none';
@@ -663,7 +664,7 @@ function renderPlayerChips() {
   state.players.forEach(p => {
     const div = document.createElement('div');
     div.className = 'pc-item' + (p.id === myId ? ' pc-me' : '');
-    div.innerHTML = `<span class="pc-name">${p.name}${p.id === myId ? ' (我)' : ''}</span>
+    div.innerHTML = `<span class="pc-name">${roomSession.escapeHtml(p.name)}${p.id === myId ? ' (我)' : ''}</span>
       <span class="pc-items-count">${p.items_won.length}件</span>
       <span class="pc-chips">${p.chips}</span>`;
     list.appendChild(div);
@@ -705,7 +706,7 @@ function showResults() {
     ).join('');
     card.innerHTML = `
       <div class="prc-header">
-        <span class="prc-name${isMe ? ' me' : ''}">${p.name}${isMe ? ' (我)' : ''}</span>
+        <span class="prc-name${isMe ? ' me' : ''}">${roomSession.escapeHtml(p.name)}${isMe ? ' (我)' : ''}</span>
         <span class="prc-chips">剩余 ${p.chips} 筹码</span>
       </div>
       <div class="prc-items">
@@ -715,8 +716,6 @@ function showResults() {
   });
 }
 
-// Enter 键支持
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); });
 function restoreSessionOnLoad() {
   const savedName = roomSession.applyNicknameToInput('nameInput');
   if (savedName) {

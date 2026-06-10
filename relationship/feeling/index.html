@@ -1070,11 +1070,33 @@
   <script>
     const FEELING_WS='wss://lightaitec.com/relationship/feeling/ws';
     const feelingSession=window.RelationshipSession;
-    let feelingInMp=false,feelingWs=null,feelingMyId=null,feelingMyName='',feelingIsHost=false,feelingMpIsSubject=false,feelingRoomState=null;
+    let feelingInMp=false,feelingWs=null,feelingMyId=null,feelingMyName='',feelingIsHost=false,feelingMpIsSubject=false,feelingRoomState=null,feelingIntentionalClose=false,feelingRestoreRoomCode='',feelingRestoreRetryCount=0;
 
     function openFeelingMp(){document.getElementById('feelingMpOverlay').style.display='block';}
     function closeFeelingMp(){document.getElementById('feelingMpOverlay').style.display='none';}
     function feelingSend(m){if(feelingWs&&feelingWs.readyState===1)feelingWs.send(JSON.stringify(m));}
+    function feelingConnect(onOpen){
+      feelingIntentionalClose=false;
+      feelingWs=new WebSocket(FEELING_WS);
+      feelingWs.onopen=()=>{if(onOpen)onOpen();};
+      feelingWs.onmessage=e=>feelingMpMsg(JSON.parse(e.data));
+      feelingWs.onclose=()=>{
+        if(!feelingIntentionalClose&&feelingRoomState?.code){
+          feelingSession.showConnectionStatus('reconnecting','正在重新连接...');
+          setTimeout(feelingReconnect,2000);
+        }
+      };
+      feelingWs.onerror=()=>{};
+    }
+    function feelingReconnect(){
+      if(!feelingRoomState?.code||!feelingMyName)return;
+      feelingConnect(()=>feelingSend({type:'join_room',roomCode:feelingRoomState.code,...feelingSession.identityPayload(feelingMyName)}));
+    }
+    function feelingRememberRoom(){
+      if(!feelingRoomState?.code||!feelingMyId)return;
+      feelingRestoreRoomCode='';feelingRestoreRetryCount=0;
+      feelingSession.saveRoom({gameKey:'feeling',roomCode:feelingRoomState.code,playerId:feelingMyId,role:feelingIsHost?'host':'player',state:'lobby'});
+    }
 
     function feelingMpConfirm(){
       const n=document.getElementById('feelingMpName').value.trim();
@@ -1085,16 +1107,13 @@
       document.getElementById('feelingMpS2').style.display='block';
     }
     function feelingMpCreate(){
-      feelingIsHost=true;feelingWs=new WebSocket(FEELING_WS);
-      feelingWs.onopen=()=>feelingSend({type:'create_room',...feelingSession.identityPayload(feelingMyName)});
-      feelingWs.onmessage=e=>feelingMpMsg(JSON.parse(e.data));feelingWs.onerror=()=>{};
+      feelingIsHost=true;
+      feelingConnect(()=>feelingSend({type:'create_room',...feelingSession.identityPayload(feelingMyName)}));
     }
     function feelingMpJoin(){
       const c=document.getElementById('feelingMpCode').value.trim();
       if(!c||c.length!==4){document.getElementById('feelingMpJErr').textContent='请输入4位房间号';return;}
-      feelingWs=new WebSocket(FEELING_WS);
-      feelingWs.onopen=()=>feelingSend({type:'join_room',roomCode:c,...feelingSession.identityPayload(feelingMyName)});
-      feelingWs.onmessage=e=>feelingMpMsg(JSON.parse(e.data));feelingWs.onerror=()=>{};
+      feelingConnect(()=>feelingSend({type:'join_room',roomCode:c,...feelingSession.identityPayload(feelingMyName)}));
     }
     function feelingMpEnter(){
       feelingInMp=true;
@@ -1117,12 +1136,14 @@
     }
 
     function feelingMpMsg(msg){
-      if(msg.type==='room_created'){feelingMyId=msg.state.players[0].id;feelingRoomState=msg.state;feelingMpShowLobby(msg.state);}
-      else if(msg.type==='joined'||msg.type==='rejoined'){feelingMyId=msg.state.players.find(p=>p.name===feelingMyName)?.id;feelingRoomState=msg.state;feelingMpShowLobby(msg.state);}
+      if(msg.type==='room_created'){feelingMyId=msg.state.players[0].id;feelingRoomState=msg.state;feelingRememberRoom();feelingMpShowLobby(msg.state);}
+      else if(msg.type==='joined'){feelingMyId=msg.state.players.find(p=>p.name===feelingMyName)?.id;feelingRoomState=msg.state;feelingRememberRoom();feelingMpShowLobby(msg.state);}
+      else if(msg.type==='rejoined'){feelingMyId=msg.state.players.find(p=>p.name===feelingMyName)?.id;feelingRoomState=msg.state;feelingRememberRoom();feelingSession.showConnectionStatus('restored','已回到房间');feelingMpShowLobby(msg.state);}
       else if(msg.type==='player_joined'||msg.type==='player_back'||msg.type==='player_left'){feelingRoomState=msg.state;feelingMpRender(msg.state);}
       else if(msg.type==='guess_subject_set'){
         feelingMpIsSubject=msg.subjectName===feelingMyName;
         feelingMpUpdateCtrl(msg.subjectName);
+        if(feelingMpIsSubject){const count=feelingRoomState?.players?.length||2;startWithCount(count);}
       }
       else if(msg.type==='guess_round_start'){
         if(!feelingMpIsSubject){
@@ -1165,7 +1186,7 @@
           const guessWord=gameState.currentCards[g.guess]?.word || '';
           const match=g.guess===subIdx;
           if(!match) allMatch=false;
-          html+=`<div style="font-size:14px;margin-bottom:6px;">${g.name} 猜了「${guessWord}」 ${match?'✅ 猜对了':'❌ 没猜中'}</div>`;
+          html+=`<div style="font-size:14px;margin-bottom:6px;">${feelingSession.escapeHtml(g.name)} 猜了「${guessWord}」 ${match?'✅ 猜对了':'❌ 没猜中'}</div>`;
         });
         resultPanel.innerHTML=html;
         if(allMatch) createConfetti();
@@ -1212,7 +1233,7 @@
       const list=document.getElementById('feelingMpPlist');list.innerHTML='';
       state.players.forEach((p,i)=>{
         const d=document.createElement('div');d.style.cssText='display:flex;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid rgba(154,128,112,.1);';
-        d.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:9px;flex-shrink:0;display:inline-block;"></span><span>${p.name}${p.id===feelingMyId?' (我)':''}</span><span style="margin-left:auto;font-size:11px;color:var(--muted);">${i===0?'主持人':''}</span>`;
+        d.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:9px;flex-shrink:0;display:inline-block;"></span><span>${feelingSession.escapeHtml(p.name)}${p.id===feelingMyId?' (我)':''}</span><span style="margin-left:auto;font-size:11px;color:var(--muted);">${i===0?'主持人':''}</span>`;
         list.appendChild(d);
       });
     }
@@ -1239,11 +1260,7 @@
       }
     }
     function feelingMpVolunteer(){
-      feelingMpIsSubject=true;
       feelingSend({type:'guess_volunteer'});
-      // 使用实际房间人数，不写死2人（支持3、4、5、6人联机）
-      const count = feelingRoomState?.players?.length || 2;
-      startWithCount(count);
     }
   </script>
 </body>
