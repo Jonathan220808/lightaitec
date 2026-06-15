@@ -361,9 +361,144 @@
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; opacity: 1 !important; }
     }
+
+    /* ── Profile chip ── */
+    #profileChip {
+      position: fixed;
+      top: 18px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px 8px 10px;
+      background: var(--card);
+      border-radius: 100px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      transition: box-shadow .2s, transform .15s;
+      user-select: none;
+      border: none;
+      outline: none;
+    }
+    #profileChip:hover { box-shadow: 0 4px 20px rgba(0,0,0,.14); transform: translateY(-1px); }
+    #profileChip:active { transform: translateY(0); }
+    #profileChip .chip-icon { font-size: 15px; line-height: 1; }
+    #profileChip .chip-name { font-weight: 600; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #profileChip .chip-action { font-size: 11px; color: var(--muted); margin-left: 2px; }
+
+    /* ── Profile modal ── */
+    #profileModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,.36);
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+    #profileModal.open { display: flex; }
+    .pm-box {
+      background: var(--card);
+      border-radius: 22px;
+      padding: 36px 30px 28px;
+      width: min(360px, calc(100vw - 40px));
+      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+      animation: up .32s var(--ease) both;
+    }
+    .pm-title {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .pm-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .pm-input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 1.5px solid rgba(0,0,0,.1);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color .18s;
+      box-sizing: border-box;
+    }
+    .pm-input:focus { border-color: rgba(0,0,0,.3); }
+    .pm-actions { display: flex; gap: 10px; }
+    .pm-confirm {
+      flex: 1;
+      padding: 12px;
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .18s;
+    }
+    .pm-confirm:hover { opacity: .82; }
+    .pm-cancel {
+      padding: 12px 18px;
+      background: var(--tag);
+      color: var(--muted);
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .18s;
+    }
+    .pm-cancel:hover { opacity: .72; }
+    .pm-saved {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 14px;
+      min-height: 16px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Profile chip -->
+  <button id="profileChip" onclick="openProfileModal()" aria-label="修改昵称">
+    <span class="chip-icon">👤</span>
+    <span class="chip-name" id="chipName">设置昵称</span>
+    <span class="chip-action" id="chipAction">设置</span>
+  </button>
+
+  <!-- Name edit modal -->
+  <div id="profileModal" onclick="handleModalBackdrop(event)">
+    <div class="pm-box" onclick="event.stopPropagation()">
+      <div class="pm-title">我的昵称</div>
+      <div class="pm-sub">昵称会在所有游戏里显示，最多 12 个字。</div>
+      <input id="nicknameInput" class="pm-input" type="text" maxlength="12"
+             placeholder="输入你的昵称" autocomplete="off"
+             onkeydown="if(event.key==='Enter')confirmNickname()">
+      <div class="pm-actions">
+        <button class="pm-confirm" onclick="confirmNickname()">保存</button>
+        <button class="pm-cancel" onclick="closeProfileModal()">取消</button>
+      </div>
+      <div class="pm-saved" id="pmSaved"></div>
+    </div>
+  </div>
+
   <div class="container">
 
     <header class="header">
@@ -509,5 +644,62 @@
     <p class="footer">本页不收集任何数据，所有游戏均在你的设备本地运行。</p>
 
   </div>
+  <script>
+    const PROFILE_KEY = 'relationship.playerProfile.v1';
+
+    function getProfile() {
+      try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch { return {}; }
+    }
+
+    function saveNickname(name) {
+      const p = getProfile();
+      p.nickname = name;
+      p.lastSeenAt = Date.now();
+      if (!p.playerToken) p.playerToken = 'guest_' + Math.random().toString(36).slice(2);
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    }
+
+    function renderChip() {
+      const name = getProfile().nickname || '';
+      const chipName = document.getElementById('chipName');
+      const chipAction = document.getElementById('chipAction');
+      chipName.textContent = name || '设置昵称';
+      chipAction.textContent = name ? '修改' : '设置';
+    }
+
+    function openProfileModal() {
+      const name = getProfile().nickname || '';
+      document.getElementById('nicknameInput').value = name;
+      document.getElementById('pmSaved').textContent = '';
+      document.getElementById('profileModal').classList.add('open');
+      setTimeout(() => document.getElementById('nicknameInput').focus(), 60);
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.remove('open');
+    }
+
+    function handleModalBackdrop(e) {
+      if (e.target === document.getElementById('profileModal')) closeProfileModal();
+    }
+
+    function confirmNickname() {
+      const val = document.getElementById('nicknameInput').value.trim();
+      if (!val) {
+        document.getElementById('nicknameInput').focus();
+        return;
+      }
+      saveNickname(val);
+      renderChip();
+      document.getElementById('pmSaved').textContent = '已保存 ✓';
+      setTimeout(closeProfileModal, 700);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeProfileModal();
+    });
+
+    renderChip();
+  </script>
 </body>
 </html>
