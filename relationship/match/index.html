@@ -552,6 +552,7 @@ function startGame() {
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
+  preloadAll();
 }
 function newKeyword() {
   pickNewKeyword();
@@ -560,20 +561,17 @@ function newKeyword() {
 }
 
 /* ---------- 第一轮：选 5 张 ---------- */
+function preloadAll() {
+  IMAGES.forEach(src => { new Image().src = IMG_DIR + src; });
+}
 function startSelect() {
   browseOrder = shuffle([...Array(IMAGES.length).keys()]);
   browsePos = 0;
   selected = [];
+  // 按实际浏览顺序重新触发预加载，优先缓存第一批展示的图
+  browseOrder.forEach(idx => { new Image().src = IMG_DIR + IMAGES[idx]; });
   renderSelect();
   showScreen('selectScreen');
-  // 第一张图已在 renderSelect 里触发加载，之后按浏览顺序逐张预加载
-  setTimeout(() => preloadSequential(1), 200);
-}
-function preloadSequential(idx) {
-  if (idx >= browseOrder.length) return;
-  const im = new Image();
-  im.onload = im.onerror = () => preloadSequential(idx + 1);
-  im.src = IMG_DIR + IMAGES[browseOrder[idx]];
 }
 function setImg(src) {
   const img = document.getElementById('bigImg');

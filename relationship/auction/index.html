@@ -634,16 +634,17 @@ function renderBidding() {
   }
 
   // 状态提示
-  const amLeading = state.currentBidderId === myId;
+  const amLeading = myId != null && state.currentBidderId === myId;
   document.getElementById('myBidStatus').textContent = amLeading
     ? '🏆 你是当前最高出价者'
     : `我的筹码：${player.chips}`;
 
-  // 出价按钮禁用（自己领先时）
+  // 出价按钮禁用（自己领先时；myId 未就绪时不误判为领先）
+  const canBid = myId != null && !amLeading;
   document.getElementById('bidButtons').querySelectorAll('.bid-btn').forEach(btn => {
-    btn.disabled = amLeading;
+    btn.disabled = !canBid;
   });
-  document.getElementById('customBidInput').disabled = amLeading;
+  document.getElementById('customBidInput').disabled = !canBid;
 
   // 主持人悬浮面板 + 台词提示（竞拍屏时显示）
   document.getElementById('hostFloatPanel').style.display = isHost ? 'flex' : 'none';
