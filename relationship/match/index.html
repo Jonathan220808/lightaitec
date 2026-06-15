@@ -813,6 +813,14 @@ function mpHandleMsg(msg) {
       mpState = msg.state;
       mpRenderLobby(msg.state);
       break;
+    case 'host_changed':
+      mpState = msg.state;
+      mpIsHost = (mpMyId === msg.state.hostId);
+      mpRenderLobby(msg.state);
+      const _changeBtn = document.querySelector('#keywordScreen .change-link');
+      if (_changeBtn) _changeBtn.style.display = mpIsHost ? 'block' : 'none';
+      mpSession.showConnectionStatus('restored', `${mpSession.escapeHtml(msg.newHostName)} 成为新主持人`);
+      break;
     case 'keyword_sync':
       // 主持人推送的关键词 → 所有人跳到关键词屏
       currentKeyword = msg.keyword;

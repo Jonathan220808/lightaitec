@@ -440,6 +440,14 @@ function handleMsg(msg) {
       if (state.state === 'lobby') renderLobby();
       else renderPlayerChips();
       break;
+    case 'host_changed':
+      state = msg.state;
+      isHost = (myId === state.hostId);
+      if (state.state === 'lobby') renderLobby();
+      else if (state.state === 'preview') showPreview();
+      else if (state.state === 'bidding') renderBidding();
+      roomSession.showConnectionStatus('restored', `${roomSession.escapeHtml(msg.newHostName)} 成为新主持人`);
+      break;
     case 'game_start':
       state = msg.state;
       showPreview();
