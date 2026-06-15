@@ -612,8 +612,7 @@ function renderBidding() {
   if (!state) return;
   const idx = state.currentItemIndex;
   const item = state.items[idx];
-  const player = me();
-  if (!item || !player) return;
+  if (!item) return;
 
   document.getElementById('itemNumLabel').textContent = idx + 1;
   document.getElementById('aicText').textContent = item.text;
@@ -633,14 +632,17 @@ function renderBidding() {
     prog.appendChild(d);
   }
 
-  // 状态提示
+  const player = me();
   const amLeading = myId != null && state.currentBidderId === myId;
+  // player != null 确保筹码数据存在；始终更新按钮，不依赖 player 存在
+  const canBid = myId != null && !amLeading && player != null;
+
+  // 状态提示
   document.getElementById('myBidStatus').textContent = amLeading
     ? '🏆 你是当前最高出价者'
-    : `我的筹码：${player.chips}`;
+    : player ? `我的筹码：${player.chips}` : '连接中...';
 
-  // 出价按钮禁用（自己领先时；myId 未就绪时不误判为领先）
-  const canBid = myId != null && !amLeading;
+  // 出价按钮禁用 —— 始终执行，不跳过
   document.getElementById('bidButtons').querySelectorAll('.bid-btn').forEach(btn => {
     btn.disabled = !canBid;
   });
@@ -651,16 +653,18 @@ function renderBidding() {
   const script = document.getElementById('hostScript');
   if (script) script.style.display = isHost ? 'block' : 'none';
 
-  // 已拍到的东西
-  const wonItems = player.items_won;
-  const myWon = document.getElementById('myWon');
-  if (wonItems.length > 0) {
-    myWon.style.display = 'block';
-    document.getElementById('myWonItems').innerHTML = wonItems.map(w =>
-      `<span class="mw-tag">${w.text}（${w.paid}）</span>`
-    ).join('');
-  } else {
-    myWon.style.display = 'none';
+  // 已拍到的东西（仅 player 存在时）
+  if (player) {
+    const wonItems = player.items_won;
+    const myWon = document.getElementById('myWon');
+    if (wonItems.length > 0) {
+      myWon.style.display = 'block';
+      document.getElementById('myWonItems').innerHTML = wonItems.map(w =>
+        `<span class="mw-tag">${w.text}（${w.paid}）</span>`
+      ).join('');
+    } else {
+      myWon.style.display = 'none';
+    }
   }
 
   renderPlayerChips();
