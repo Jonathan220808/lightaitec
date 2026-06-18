@@ -547,17 +547,29 @@ function renderKeyword() {
 function goStart()  { showScreen('startScreen'); }
 function goKeyword(){ renderKeyword(); showScreen('keywordScreen'); }
 
+// 在关键词屏就预算好浏览顺序，并立刻开始下载第一张图
+// 用户读关键词的 2-3 秒里，第一张图已经在后台下好了
+let _pendingBrowseOrder = null;
+function prewarmFirstImage() {
+  _pendingBrowseOrder = shuffle([...Array(IMAGES.length).keys()]);
+  const first = new Image();
+  first.src = IMG_DIR + IMAGES[_pendingBrowseOrder[0]];
+  _imgCache.push(first);
+}
+
 function startGame() {
   usedKeywords.clear();
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
   preloadAll();
+  prewarmFirstImage();
 }
 function newKeyword() {
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
+  prewarmFirstImage();
 }
 
 /* ---------- 第一轮：选 5 张 ---------- */
@@ -578,7 +590,9 @@ function preloadAll() {
 }
 
 function startSelect() {
-  browseOrder = shuffle([...Array(IMAGES.length).keys()]);
+  // 复用关键词屏预算好的顺序（第一张已经在下载了），否则临时 shuffle
+  browseOrder = _pendingBrowseOrder || shuffle([...Array(IMAGES.length).keys()]);
+  _pendingBrowseOrder = null;
   browsePos = 0;
   selected = [];
   // [D] 前 10 张立刻预热（用户先看这些），其余 600ms 后补打，避免带宽竞争
@@ -860,6 +874,7 @@ function mpHandleMsg(msg) {
       const changeBtn = document.querySelector('#keywordScreen .change-link');
       if (changeBtn) changeBtn.style.display = mpIsHost ? 'block' : 'none';
       showScreen('keywordScreen');
+      prewarmFirstImage(); // 联机也在关键词屏提前下载第一张图
       break;
     case 'error':
       mpSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
