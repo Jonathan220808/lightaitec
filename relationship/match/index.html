@@ -574,19 +574,21 @@ function newKeyword() {
 
 /* ---------- 第一轮：选 5 张 ---------- */
 
-// [B] 保持 Image 对象引用，防止 GC 回收导致预加载中断
-const _imgCache = [];
+// 下载期间持有引用防 GC，下载完成后自动移除——HTTP 缓存独立保留数据
+const _imgCache = new Set();
 // [A] 版本号：跳过已过期的 onload 回调
 let _setImgVersion = 0;
 
-// [B] preloadAll 把 Image 对象存入 _imgCache 防 GC
+function preloadImg(src) {
+  const img = new Image();
+  _imgCache.add(img);
+  img.onload = img.onerror = () => _imgCache.delete(img); // 下载完即释放
+  img.src = src;
+}
+
 function preloadAll() {
-  _imgCache.length = 0;
-  IMAGES.forEach(src => {
-    const img = new Image();
-    img.src = IMG_DIR + src;
-    _imgCache.push(img);
-  });
+  _imgCache.clear();
+  IMAGES.forEach(src => preloadImg(IMG_DIR + src));
 }
 
 function startSelect() {
@@ -595,19 +597,7 @@ function startSelect() {
   _pendingBrowseOrder = null;
   browsePos = 0;
   selected = [];
-  // [D] 前 10 张立刻预热（用户先看这些），其余 600ms 后补打，避免带宽竞争
-  browseOrder.slice(0, 10).forEach(idx => {
-    const img = new Image();
-    img.src = IMG_DIR + IMAGES[idx];
-    _imgCache.push(img);
-  });
-  setTimeout(() => {
-    browseOrder.slice(10).forEach(idx => {
-      const img = new Image();
-      img.src = IMG_DIR + IMAGES[idx];
-      _imgCache.push(img);
-    });
-  }, 600);
+  // preloadAll() 已覆盖全部 60 张，无需重复请求
   renderSelect();
   showScreen('selectScreen');
 }
