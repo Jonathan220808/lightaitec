@@ -224,6 +224,17 @@
     .mp-divider { display:flex; align-items:center; gap:10px; margin:14px 0; }
     .mp-divider-line { flex:1; height:1px; background:rgba(139,130,149,.2); }
     .mp-divider span { font-size:12px; color:var(--muted); }
+    .mp-restore-box {
+      display:none; background:rgba(142,108,172,.07); border:1px solid rgba(142,108,172,.16);
+      border-radius:14px; padding:12px; margin:0 0 14px;
+    }
+    .mp-restore-text { font-size:12.5px; color:var(--muted); line-height:1.55; margin-bottom:10px; }
+    .mp-restore-actions { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+    .mp-restore-main, .mp-restore-clear {
+      border:none; cursor:pointer; font-family:inherit; border-radius:10px; transition:.18s var(--ease);
+    }
+    .mp-restore-main { background:var(--accent); color:#fff; padding:10px 12px; font-size:13px; font-weight:700; }
+    .mp-restore-clear { background:#fff; color:var(--muted); padding:10px 11px; font-size:12px; border:1px solid rgba(139,130,149,.18); }
     .mp-error { font-size:13px; color:#C0392B; min-height:18px; margin-top:6px; text-align:center; }
     .mp-code-box { background:var(--card); border-radius:20px; padding:22px; text-align:center; margin-bottom:18px; box-shadow:0 2px 16px rgba(80,50,110,.07); }
     .mp-code-label { font-size:11px; color:var(--muted); letter-spacing:.1em; margin-bottom:6px; }
@@ -445,6 +456,13 @@
   <!-- 第二步：创建或加入（确认昵称后显示） -->
   <div id="mpStep2" style="display:none;">
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">你好，<b id="mpConfirmedName" style="color:var(--text)"></b> 👋</p>
+    <div class="mp-restore-box" id="mpRestoreBox">
+      <p class="mp-restore-text">上次有一个没退出的房间：<b id="mpRestoreCode" style="color:var(--accent)"></b></p>
+      <div class="mp-restore-actions">
+        <button class="mp-restore-main" onclick="mpRestoreLastRoom()">回到上次房间</button>
+        <button class="mp-restore-clear" onclick="mpDismissSavedRoom()">不开这个</button>
+      </div>
+    </div>
     <button class="btn btn-primary" onclick="mpCreateRoom()">创建房间（我来主持）</button>
     <div class="mp-divider"><div class="mp-divider-line"></div><span>或加入已有房间</span><div class="mp-divider-line"></div></div>
     <input class="mp-input" id="mpCodeInput" type="text" placeholder="输入4位房间号" maxlength="4" pattern="[0-9]*" inputmode="numeric">
@@ -497,6 +515,47 @@ let browseOrder    = [];    // 本轮浏览顺序（打乱的 IMAGES 下标）
 let browsePos      = 0;     // 当前浏览到第几张（browseOrder 的指针）
 let selected       = [];    // 已选的 IMAGES 下标（最多5，选中顺序）
 let rankOrder      = [];    // 排序后的 IMAGES 下标（点选顺序＝名次）
+const imagePreloadCache = new Map();
+let preloadRunId = 0;
+let setImgVersion = 0;
+
+function imageSrcByIndex(imgIdx) {
+  return IMG_DIR + IMAGES[imgIdx];
+}
+
+function preloadImageByIndex(imgIdx) {
+  const src = imageSrcByIndex(imgIdx);
+  const cached = imagePreloadCache.get(src);
+  if (cached) return cached;
+
+  const img = new Image();
+  const record = { img, loaded: false };
+  imagePreloadCache.set(src, record);
+  img.onload = img.onerror = () => { record.loaded = true; };
+  img.src = src;
+  return record;
+}
+
+function preloadAdjacentImages() {
+  if (!browseOrder.length) return;
+  const offsets = [0, 1, -1, 2, -2, 3, 4, 5];
+  offsets.forEach(offset => {
+    const pos = (browsePos + offset + browseOrder.length) % browseOrder.length;
+    preloadImageByIndex(browseOrder[pos]);
+  });
+}
+
+function preloadRemainingImages(startAt = 0, runId = preloadRunId) {
+  if (runId !== preloadRunId || !browseOrder.length) return;
+  const batch = browseOrder.slice(startAt, startAt + 4);
+  batch.forEach(preloadImageByIndex);
+  if (startAt + batch.length >= browseOrder.length) return;
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(() => preloadRemainingImages(startAt + batch.length, runId), { timeout: 120 });
+  } else {
+    window.setTimeout(() => preloadRemainingImages(startAt + batch.length, runId), 120);
+  }
+}
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -547,75 +606,56 @@ function renderKeyword() {
 function goStart()  { showScreen('startScreen'); }
 function goKeyword(){ renderKeyword(); showScreen('keywordScreen'); }
 
-// 在关键词屏就预算好浏览顺序，并立刻开始下载第一张图
-// 用户读关键词的 2-3 秒里，第一张图已经在后台下好了
-let _pendingBrowseOrder = null;
-function prewarmFirstImage() {
-  _pendingBrowseOrder = shuffle([...Array(IMAGES.length).keys()]);
-  const first = new Image();
-  first.src = IMG_DIR + IMAGES[_pendingBrowseOrder[0]];
-  _imgCache.push(first);
-}
-
 function startGame() {
   usedKeywords.clear();
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
-  preloadAll();
-  prewarmFirstImage();
 }
 function newKeyword() {
   pickNewKeyword();
   renderKeyword();
   showScreen('keywordScreen');
-  prewarmFirstImage();
 }
 
 /* ---------- 第一轮：选 5 张 ---------- */
-
-// 下载期间持有引用防 GC，下载完成后自动移除——HTTP 缓存独立保留数据
-const _imgCache = new Set();
-// [A] 版本号：跳过已过期的 onload 回调
-let _setImgVersion = 0;
-
-function preloadImg(src) {
-  const img = new Image();
-  _imgCache.add(img);
-  img.onload = img.onerror = () => _imgCache.delete(img); // 下载完即释放
-  img.src = src;
-}
-
-function preloadAll() {
-  _imgCache.clear();
-  IMAGES.forEach(src => preloadImg(IMG_DIR + src));
-}
-
 function startSelect() {
-  // 复用关键词屏预算好的顺序（第一张已经在下载了），否则临时 shuffle
-  browseOrder = _pendingBrowseOrder || shuffle([...Array(IMAGES.length).keys()]);
-  _pendingBrowseOrder = null;
+  browseOrder = shuffle([...Array(IMAGES.length).keys()]);
   browsePos = 0;
   selected = [];
-  // preloadAll() 已覆盖全部 60 张，无需重复请求
+  preloadRunId += 1;
+  preloadAdjacentImages();
+  preloadRemainingImages(0, preloadRunId);
   renderSelect();
   showScreen('selectScreen');
 }
-
-// [A] 版本号防止旧请求的 onload 覆盖当前图片
 function setImg(src) {
-  const ver = ++_setImgVersion;
+  const version = ++setImgVersion;
   const img = document.getElementById('bigImg');
   const frame = document.getElementById('imgFrame');
-  const tmp = new Image();
-  tmp.onload = () => {
-    if (ver !== _setImgVersion) return; // 过时回调，忽略
-    frame.classList.remove('img-loading');
+
+  const cached = imagePreloadCache.get(src);
+  if (cached?.img?.complete || cached?.loaded) {
     img.src = src;
     img.style.opacity = '1';
+    frame.classList.remove('img-loading');
+    return;
+  }
+
+  const tmp = cached?.img || new Image();
+  if (!cached) imagePreloadCache.set(src, { img: tmp, loaded: false });
+  tmp.onload = () => {
+    if (version !== setImgVersion) return;
+    const record = imagePreloadCache.get(src);
+    if (record) record.loaded = true;
+    img.src = src;
+    img.style.opacity = '1';
+    frame.classList.remove('img-loading');
   };
   tmp.onerror = () => {
-    if (ver !== _setImgVersion) return;
+    if (version !== setImgVersion) return;
+    const record = imagePreloadCache.get(src);
+    if (record) record.loaded = true;
     frame.classList.remove('img-loading');
   };
   tmp.src = src;
@@ -629,7 +669,8 @@ function renderSelect() {
   document.getElementById('selKw').textContent = '「' + currentKeyword + '」';
   document.getElementById('selCount').textContent = selected.length;
   const cur = browseOrder[browsePos];
-  setImg(IMG_DIR + IMAGES[cur]);
+  preloadAdjacentImages();
+  setImg(imageSrcByIndex(cur));
   document.getElementById('imgIndex').textContent = (browsePos + 1) + ' / ' + browseOrder.length;
 
   const isSel = selected.includes(cur);
@@ -754,6 +795,7 @@ const MP_WS_URL = 'wss://lightaitec.com/relationship/match/ws';
 const MP_GAME_KEY = 'match';
 const mpSession = window.RelationshipSession;
 let inMp = false, mpWs = null, mpMyId = null, mpMyName = '', mpIsHost = false, mpState = null, mpIntentionalClose = false, mpRestoreRoomCode = '', mpRestoreRetryCount = 0;
+let mpReconnectTimer = null, mpRestoreRetryTimer = null, mpPendingRestoreRoom = null;
 
 function openMultiplayer() {
   mpRestoreName();
@@ -761,6 +803,8 @@ function openMultiplayer() {
   document.getElementById('mpStep2').style.display = 'none';
   document.getElementById('mpLobby').style.display = 'none';
   document.getElementById('mpError').textContent = '';
+  document.getElementById('mpJoinError').textContent = '';
+  renderRestoreRoomPrompt();
   if (mpMyName) {
     document.getElementById('mpStep1').style.display = 'none';
     document.getElementById('mpStep2').style.display = 'block';
@@ -776,6 +820,71 @@ function mpConfirmName() {
   document.getElementById('mpConfirmedName').textContent = mpMyName;
   document.getElementById('mpStep1').style.display = 'none';
   document.getElementById('mpStep2').style.display = 'block';
+  renderRestoreRoomPrompt();
+}
+
+function renderRestoreRoomPrompt() {
+  const box = document.getElementById('mpRestoreBox');
+  const code = document.getElementById('mpRestoreCode');
+  if (!box || !code) return;
+  mpPendingRestoreRoom = mpSession.getRoom(MP_GAME_KEY);
+  if (!mpPendingRestoreRoom) {
+    box.style.display = 'none';
+    code.textContent = '';
+    return;
+  }
+  code.textContent = mpPendingRestoreRoom.roomCode;
+  box.style.display = 'block';
+}
+
+function mpClearReconnectTimers() {
+  if (mpReconnectTimer) {
+    clearTimeout(mpReconnectTimer);
+    mpReconnectTimer = null;
+  }
+  if (mpRestoreRetryTimer) {
+    clearTimeout(mpRestoreRetryTimer);
+    mpRestoreRetryTimer = null;
+  }
+}
+
+function mpCloseSocketIntentionally() {
+  mpIntentionalClose = true;
+  if (mpWs) {
+    mpWs.close();
+    mpWs = null;
+  }
+}
+
+function mpStartFreshRoomAction() {
+  mpClearReconnectTimers();
+  mpCloseSocketIntentionally();
+  mpSession.clearRoom(MP_GAME_KEY);
+  mpPendingRestoreRoom = null;
+  mpRestoreRoomCode = '';
+  mpRestoreRetryCount = 0;
+  inMp = false;
+  mpState = null;
+  renderRestoreRoomPrompt();
+}
+
+function mpDismissSavedRoom() {
+  mpStartFreshRoomAction();
+}
+
+function mpRestoreLastRoom() {
+  const savedRoom = mpPendingRestoreRoom || mpSession.getRoom(MP_GAME_KEY);
+  if (!savedRoom) {
+    renderRestoreRoomPrompt();
+    document.getElementById('mpJoinError').textContent = '上次房间已经失效，可以新建或输入房间号';
+    return;
+  }
+  mpClearReconnectTimers();
+  mpCloseSocketIntentionally();
+  mpRestoreRoomCode = savedRoom.roomCode;
+  mpRestoreRetryCount = 0;
+  mpSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
+  mpConnect(() => mpSend({ type: 'join_room', roomCode: savedRoom.roomCode, ...mpSession.identityPayload(mpMyName) }));
 }
 
 function mpConnect(onOpen) {
@@ -784,9 +893,9 @@ function mpConnect(onOpen) {
   mpWs.onopen = () => { if (onOpen) onOpen(); };
   mpWs.onmessage = e => mpHandleMsg(JSON.parse(e.data));
   mpWs.onclose = () => {
-    if (!mpIntentionalClose && mpState?.code) {
+    if (!mpIntentionalClose && inMp && mpState?.code) {
       mpSession.showConnectionStatus('reconnecting', '正在重新连接...');
-      setTimeout(mpReconnect, 2000);
+      mpReconnectTimer = setTimeout(mpReconnect, 2000);
     }
   };
   mpWs.onerror = () => {};
@@ -802,6 +911,7 @@ function mpSend(msg) {
 }
 
 function mpCreateRoom() {
+  mpStartFreshRoomAction();
   mpIsHost = true;
   mpConnect(() => mpSend({ type: 'create_room', ...mpSession.identityPayload(mpMyName) }));
 }
@@ -810,10 +920,12 @@ function mpJoinRoom() {
   const code = document.getElementById('mpCodeInput').value.trim();
   if (!code || code.length !== 4) { document.getElementById('mpJoinError').textContent = '请输入4位房间号'; return; }
   document.getElementById('mpJoinError').textContent = '';
+  mpStartFreshRoomAction();
   mpConnect(() => mpSend({ type: 'join_room', roomCode: code, ...mpSession.identityPayload(mpMyName) }));
 }
 
 function mpLeave() {
+  mpClearReconnectTimers();
   mpIntentionalClose = true;
   mpSession.clearRoom(MP_GAME_KEY);
   if (mpWs) { mpWs.close(); mpWs = null; }
@@ -832,12 +944,15 @@ function mpHandleMsg(msg) {
       break;
     case 'joined':
     case 'rejoined':
+      const wasRestoring = !!mpRestoreRoomCode && mpRestoreRoomCode === msg.state.code;
       inMp = true;
       mpMyId = msg.state.players.find(p => p.name === mpMyName)?.id;
       mpIsHost = mpMyId === msg.state.hostId;
       mpState = msg.state;
       mpRememberRoom();
-      mpSession.showConnectionStatus('restored', '已回到房间');
+      if (wasRestoring || msg.type === 'rejoined') {
+        mpSession.showConnectionStatus('restored', '已回到房间');
+      }
       mpShowLobby(msg.state);
       break;
     case 'player_joined':
@@ -850,8 +965,8 @@ function mpHandleMsg(msg) {
       mpState = msg.state;
       mpIsHost = (mpMyId === msg.state.hostId);
       mpRenderLobby(msg.state);
-      const _changeBtn = document.querySelector('#keywordScreen .change-link');
-      if (_changeBtn) _changeBtn.style.display = mpIsHost ? 'block' : 'none';
+      const hostChangeBtn = document.querySelector('#keywordScreen .change-link');
+      if (hostChangeBtn) hostChangeBtn.style.display = mpIsHost ? 'block' : 'none';
       mpSession.showConnectionStatus('restored', `${mpSession.escapeHtml(msg.newHostName)} 成为新主持人`);
       break;
     case 'keyword_sync':
@@ -864,7 +979,6 @@ function mpHandleMsg(msg) {
       const changeBtn = document.querySelector('#keywordScreen .change-link');
       if (changeBtn) changeBtn.style.display = mpIsHost ? 'block' : 'none';
       showScreen('keywordScreen');
-      prewarmFirstImage(); // 联机也在关键词屏提前下载第一张图
       break;
     case 'error':
       mpSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
@@ -878,7 +992,7 @@ function mpRetryRestoreAfterNameCollision(message) {
   if (!mpRestoreRoomCode || !mpSession.isRetryableRestoreError(message) || mpRestoreRetryCount >= 5) return false;
   mpRestoreRetryCount += 1;
   mpSession.showConnectionStatus('reconnecting', 'Waiting for previous connection...');
-  setTimeout(() => {
+  mpRestoreRetryTimer = setTimeout(() => {
     mpConnect(() => mpSend({ type: 'join_room', roomCode: mpRestoreRoomCode, ...mpSession.identityPayload(mpMyName) }));
   }, 900 + mpRestoreRetryCount * 500);
   return true;
@@ -886,6 +1000,7 @@ function mpRetryRestoreAfterNameCollision(message) {
 
 function mpRememberRoom() {
   if (!mpState?.code || !mpMyId) return;
+  mpClearReconnectTimers();
   mpRestoreRoomCode = '';
   mpRestoreRetryCount = 0;
   mpSession.saveRoom({
@@ -937,18 +1052,7 @@ function mpRestoreName() {
   return savedName;
 }
 
-function mpRestoreSessionOnLoad() {
-  const savedName = mpRestoreName();
-  const savedRoom = mpSession.getRoom(MP_GAME_KEY);
-  if (!savedName || !savedRoom) return;
-  openMultiplayer();
-  mpRestoreRoomCode = savedRoom.roomCode;
-  mpRestoreRetryCount = 0;
-  mpSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
-  mpConnect(() => mpSend({ type: 'join_room', roomCode: savedRoom.roomCode, ...mpSession.identityPayload(mpMyName) }));
-}
-
-mpRestoreSessionOnLoad();
+mpRestoreName();
 
 function openLightbox(src) {
   document.getElementById('lightboxImg').src = src;
