@@ -20,6 +20,7 @@
       --c4: #B8864E;   /* 需求押注 · 暖金     */
       --c5: #9B7BB5;
       --c6: #C8972A;   /* 人生拍卖行 · 拍卖金 */
+      --c7: #5F9FB2;   /* 你画我猜 · 湖蓝 */
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -89,6 +90,7 @@
     a.game-card:nth-child(4) { animation: up .72s var(--ease) .38s both; }
     a.game-card:nth-child(5) { animation: up .72s var(--ease) .46s both; }
     a.game-card:nth-child(6) { animation: up .72s var(--ease) .54s both; }
+    a.game-card:nth-child(7) { animation: up .72s var(--ease) .62s both; }
     a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
     a.game-card:active { transform: translateY(-3px); }
 
@@ -108,6 +110,7 @@
     .card-visual.v4 { background: var(--c4); }
     .card-visual.v5 { background: var(--c5); }
     .card-visual.v6 { background: var(--c6); }
+    .card-visual.v7 { background: var(--c7); }
 
     .card-visual::before {
       content: '';
@@ -127,6 +130,84 @@
     }
 
     .visual-content { position: relative; z-index: 1; width: 100%; }
+
+    /* ⑦ draw — 你画我猜 */
+    .visual-content.draw-preview {
+      height: 132px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .draw-canvas-mini {
+      flex: 1;
+      background: rgba(255,255,255,.92);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .draw-canvas-mini::before,
+    .draw-canvas-mini::after {
+      content: '';
+      position: absolute;
+      height: 8px;
+      border-radius: 99px;
+      background: rgba(26,17,8,.72);
+    }
+    .draw-canvas-mini::before {
+      width: 94px;
+      left: 34px;
+      top: 36px;
+      transform: rotate(-19deg);
+    }
+    .draw-canvas-mini::after {
+      width: 68px;
+      right: 36px;
+      top: 51px;
+      transform: rotate(22deg);
+    }
+    .draw-tools-mini {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .draw-tool-mini {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.82);
+      position: relative;
+    }
+    .draw-tool-mini.brush::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 22px;
+      border-radius: 5px;
+      background: #1A1108;
+      left: 8px;
+      top: 1px;
+      transform: rotate(38deg);
+    }
+    .draw-tool-mini.palette {
+      border-radius: 50%;
+      background: #111;
+      border: 3px solid rgba(255,255,255,.92);
+    }
+    .draw-tool-mini.eraser::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 13px;
+      border: 3px solid #1A1108;
+      border-radius: 4px;
+      left: 3px;
+      top: 6px;
+      transform: rotate(-38deg);
+    }
 
     /* ① quote — 心灵奇旅 */
     .visual-content.quote { text-align: center; }
@@ -636,6 +717,29 @@
           <h2>人生拍卖行</h2>
           <p>每人100筹码，竞拍你认为此生最重要的东西。钱花完了，就是你真正在乎的。</p>
           <span class="card-link">进入拍卖 →</span>
+        </div>
+      </a>
+
+      <!-- 07 你画我猜 -->
+      <a class="game-card" href="./draw/index.html">
+        <div class="card-visual v7">
+          <div class="visual-content draw-preview">
+            <span class="draw-canvas-mini"></span>
+            <span class="draw-tools-mini">
+              <span class="draw-tool-mini brush"></span>
+              <span class="draw-tool-mini palette"></span>
+              <span class="draw-tool-mini eraser"></span>
+            </span>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">07</span>
+            <span class="card-tag">多人 · 白板猜题</span>
+          </div>
+          <h2>你画我猜</h2>
+          <p>自由画布、你画我猜、画笔传情三种玩法。用画画让大家更自然地介绍自己、猜彼此、接住联想。</p>
+          <span class="card-link">开始画画 →</span>
         </div>
       </a>
 
