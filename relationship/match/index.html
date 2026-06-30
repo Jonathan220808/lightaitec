@@ -566,6 +566,9 @@ let browsePos      = 0;     // 当前浏览到第几张（browseOrder 的指针�
 let selected       = [];    // 已选的 IMAGES 下标（最多5，选中顺序）
 let rankOrder      = [];    // 排序后的 IMAGES 下标（点选顺序＝名次）
 const imagePreloadCache = new Map();
+const IMAGE_RUNWAY_SIZE = 16;
+const IMAGE_RUNWAY_REFILL_AT = 10;
+const IMAGE_BACKGROUND_BATCH_SIZE = 6;
 let preloadRunId = 0;
 let setImgVersion = 0;
 const state = {
@@ -590,11 +593,66 @@ function preloadImageByIndex(imgIdx) {
   if (cached) return cached;
 
   const img = new Image();
-  const record = { img, loaded: false };
+  const record = { img, loaded: false, ready: false, promise: null };
   imagePreloadCache.set(src, record);
-  img.onload = img.onerror = () => { record.loaded = true; };
+  record.promise = new Promise(resolve => {
+    const markReady = () => {
+      record.loaded = true;
+      const decode = img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+      decode.finally(() => {
+        record.ready = true;
+        resolve(record);
+      });
+    };
+    img.onload = markReady;
+    img.onerror = () => {
+      record.loaded = true;
+      record.ready = true;
+      resolve(record);
+    };
+  });
   img.src = src;
+  if (img.complete) {
+    record.loaded = true;
+    record.ready = true;
+  }
   return record;
+}
+
+function isImageReady(imgIdx) {
+  const record = imagePreloadCache.get(imageSrcByIndex(imgIdx));
+  return Boolean(record && (record.ready || (record.img?.complete && record.img?.naturalWidth > 0)));
+}
+
+function preloadImageRunway(startPos = browsePos, size = IMAGE_RUNWAY_SIZE) {
+  if (!browseOrder.length) return;
+  const max = Math.min(size, browseOrder.length);
+  for (let i = 0; i < max; i++) {
+    const pos = (startPos + i + browseOrder.length) % browseOrder.length;
+    preloadImageByIndex(browseOrder[pos]);
+  }
+}
+
+function promoteReadyImageIntoPosition(pos = browsePos) {
+  if (!browseOrder.length) return false;
+  const normalized = (pos + browseOrder.length) % browseOrder.length;
+  if (isImageReady(browseOrder[normalized])) return true;
+
+  const searchLimit = Math.min(browseOrder.length, IMAGE_RUNWAY_SIZE * 2);
+  for (let offset = 1; offset < searchLimit; offset++) {
+    const candidatePos = (normalized + offset) % browseOrder.length;
+    if (!isImageReady(browseOrder[candidatePos])) continue;
+    [browseOrder[normalized], browseOrder[candidatePos]] = [browseOrder[candidatePos], browseOrder[normalized]];
+    return true;
+  }
+  return false;
+}
+
+function ensureReadyImageAtCurrentPosition() {
+  preloadImageRunway();
+  if (promoteReadyImageIntoPosition()) return true;
+  preloadImageByIndex(browseOrder[browsePos]);
+  return false;
 }
 
 function preloadAdjacentImages() {
@@ -608,7 +666,7 @@ function preloadAdjacentImages() {
 
 function preloadRemainingImages(startAt = 0, runId = preloadRunId) {
   if (runId !== preloadRunId || !browseOrder.length) return;
-  const batch = browseOrder.slice(startAt, startAt + 4);
+  const batch = browseOrder.slice(startAt, startAt + IMAGE_BACKGROUND_BATCH_SIZE);
   batch.forEach(preloadImageByIndex);
   if (startAt + batch.length >= browseOrder.length) return;
   if (window.requestIdleCallback) {
@@ -622,8 +680,9 @@ function prepareBrowseImagesForRound() {
   browseOrder = shuffle([...Array(IMAGES.length).keys()]);
   browsePos = 0;
   preloadRunId += 1;
+  preloadImageRunway(0, IMAGE_RUNWAY_SIZE);
   preloadAdjacentImages();
-  preloadRemainingImages(0, preloadRunId);
+  preloadRemainingImages(IMAGE_RUNWAY_SIZE, preloadRunId);
 }
 
 function showScreen(id) {
@@ -750,6 +809,7 @@ function startSelect() {
   browsePos = 0;
   selected = [];
   rankOrder = [];
+  ensureReadyImageAtCurrentPosition();
   renderSelect();
   showScreen('selectScreen');
 }
@@ -759,7 +819,7 @@ function setImg(src) {
   const frame = document.getElementById('imgFrame');
 
   const cached = imagePreloadCache.get(src);
-  if (cached?.img?.complete || cached?.loaded) {
+  if (cached?.ready || cached?.img?.complete || cached?.loaded) {
     img.src = src;
     img.style.opacity = '1';
     frame.classList.remove('img-loading');
@@ -798,6 +858,9 @@ function renderSelect() {
     ? `为 <b id="selKw">「${currentKeyword}」</b> 选 1-3 张`
     : `为 <b id="selKw">「${currentKeyword}」</b> 挑 5 张`;
   document.getElementById('selCount').textContent = selected.length;
+  ensureReadyImageAtCurrentPosition();
+  preloadImageRunway();
+  preloadImageRunway(browsePos + IMAGE_RUNWAY_REFILL_AT, IMAGE_RUNWAY_SIZE);
   const cur = browseOrder[browsePos];
   preloadAdjacentImages();
   setImg(imageSrcByIndex(cur));
@@ -832,8 +895,16 @@ function renderSelect() {
   toRankBtn.textContent = state.playMode === 'chat' ? '完成选择，开始聊' : '下一步：排序';
   toRankBtn.classList.toggle('btn-disabled', selected.length < min);
 }
-function prevImg() { browsePos = (browsePos - 1 + browseOrder.length) % browseOrder.length; renderSelect(); }
-function nextImg() { browsePos = (browsePos + 1) % browseOrder.length; renderSelect(); }
+function prevImg() {
+  browsePos = (browsePos - 1 + browseOrder.length) % browseOrder.length;
+  preloadImageRunway();
+  renderSelect();
+}
+function nextImg() {
+  browsePos = (browsePos + 1) % browseOrder.length;
+  preloadImageRunway();
+  renderSelect();
+}
 function togglePick() {
   const cur = browseOrder[browsePos];
   const pos = selected.indexOf(cur);
