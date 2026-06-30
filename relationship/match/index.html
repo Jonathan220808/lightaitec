@@ -569,6 +569,7 @@ const imagePreloadCache = new Map();
 const IMAGE_RUNWAY_SIZE = 16;
 const IMAGE_RUNWAY_REFILL_AT = 10;
 const IMAGE_BACKGROUND_BATCH_SIZE = 6;
+const IMAGE_BACKGROUND_DELAY = 180;
 let preloadRunId = 0;
 let setImgVersion = 0;
 const state = {
@@ -587,14 +588,17 @@ function imageSrcByIndex(imgIdx) {
   return IMG_DIR + IMAGES[imgIdx];
 }
 
-function preloadImageByIndex(imgIdx) {
+function preloadImageByIndex(imgIdx, priority = 'auto') {
   const src = imageSrcByIndex(imgIdx);
   const cached = imagePreloadCache.get(src);
+  if (cached?.img && priority === 'high') cached.img.fetchPriority = 'high';
   if (cached) return cached;
 
   const img = new Image();
   const record = { img, loaded: false, ready: false, promise: null };
   imagePreloadCache.set(src, record);
+  img.decoding = 'async';
+  img.fetchPriority = priority;
   record.promise = new Promise(resolve => {
     const markReady = () => {
       record.loaded = true;
@@ -607,12 +611,12 @@ function preloadImageByIndex(imgIdx) {
     img.onload = markReady;
     img.onerror = () => {
       record.loaded = true;
-      record.ready = true;
+      record.ready = false;
       resolve(record);
     };
   });
   img.src = src;
-  if (img.complete) {
+  if (img.complete && img.naturalWidth > 0) {
     record.loaded = true;
     record.ready = true;
   }
@@ -629,7 +633,7 @@ function preloadImageRunway(startPos = browsePos, size = IMAGE_RUNWAY_SIZE) {
   const max = Math.min(size, browseOrder.length);
   for (let i = 0; i < max; i++) {
     const pos = (startPos + i + browseOrder.length) % browseOrder.length;
-    preloadImageByIndex(browseOrder[pos]);
+    preloadImageByIndex(browseOrder[pos], 'high');
   }
 }
 
@@ -651,7 +655,7 @@ function promoteReadyImageIntoPosition(pos = browsePos) {
 function ensureReadyImageAtCurrentPosition() {
   preloadImageRunway();
   if (promoteReadyImageIntoPosition()) return true;
-  preloadImageByIndex(browseOrder[browsePos]);
+  preloadImageByIndex(browseOrder[browsePos], 'high');
   return false;
 }
 
@@ -660,29 +664,39 @@ function preloadAdjacentImages() {
   const offsets = [0, 1, -1, 2, -2, 3, 4, 5];
   offsets.forEach(offset => {
     const pos = (browsePos + offset + browseOrder.length) % browseOrder.length;
-    preloadImageByIndex(browseOrder[pos]);
+    preloadImageByIndex(browseOrder[pos], 'high');
   });
+}
+
+function schedulePreloadContinuation(startAt, runId) {
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(() => preloadRemainingImages(startAt, runId), { timeout: IMAGE_BACKGROUND_DELAY });
+  } else {
+    window.setTimeout(() => preloadRemainingImages(startAt, runId), IMAGE_BACKGROUND_DELAY);
+  }
 }
 
 function preloadRemainingImages(startAt = 0, runId = preloadRunId) {
   if (runId !== preloadRunId || !browseOrder.length) return;
   const batch = browseOrder.slice(startAt, startAt + IMAGE_BACKGROUND_BATCH_SIZE);
-  batch.forEach(preloadImageByIndex);
+  const records = batch.map(imgIdx => preloadImageByIndex(imgIdx, 'low'));
   if (startAt + batch.length >= browseOrder.length) return;
-  if (window.requestIdleCallback) {
-    window.requestIdleCallback(() => preloadRemainingImages(startAt + batch.length, runId), { timeout: 120 });
-  } else {
-    window.setTimeout(() => preloadRemainingImages(startAt + batch.length, runId), 120);
-  }
+  Promise.allSettled(records.map(record => record.promise)).finally(() => schedulePreloadContinuation(startAt + batch.length, runId));
 }
 
-function prepareBrowseImagesForRound() {
-  browseOrder = shuffle([...Array(IMAGES.length).keys()]);
+function prepareBrowseImagesForRound(options = {}) {
+  if (!browseOrder.length || options.forceNew) {
+    browseOrder = shuffle([...Array(IMAGES.length).keys()]);
+  }
   browsePos = 0;
   preloadRunId += 1;
   preloadImageRunway(0, IMAGE_RUNWAY_SIZE);
   preloadAdjacentImages();
   preloadRemainingImages(IMAGE_RUNWAY_SIZE, preloadRunId);
+}
+
+function warmInitialImageCache() {
+  if (!browseOrder.length) prepareBrowseImagesForRound();
 }
 
 function showScreen(id) {
@@ -819,7 +833,7 @@ function setImg(src) {
   const frame = document.getElementById('imgFrame');
 
   const cached = imagePreloadCache.get(src);
-  if (cached?.ready || cached?.img?.complete || cached?.loaded) {
+  if (cached?.ready || (cached?.img?.complete && cached?.img?.naturalWidth > 0)) {
     img.src = src;
     img.style.opacity = '1';
     frame.classList.remove('img-loading');
@@ -831,7 +845,7 @@ function setImg(src) {
   tmp.onload = () => {
     if (version !== setImgVersion) return;
     const record = imagePreloadCache.get(src);
-    if (record) record.loaded = true;
+    if (record) { record.loaded = true; record.ready = tmp.naturalWidth > 0; }
     img.src = src;
     img.style.opacity = '1';
     frame.classList.remove('img-loading');
@@ -839,11 +853,11 @@ function setImg(src) {
   tmp.onerror = () => {
     if (version !== setImgVersion) return;
     const record = imagePreloadCache.get(src);
-    if (record) record.loaded = true;
+    if (record) { record.loaded = true; record.ready = false; }
     frame.classList.remove('img-loading');
   };
   tmp.src = src;
-  if (tmp.complete) {
+  if (tmp.complete && tmp.naturalWidth > 0) {
     img.src = src; img.style.opacity = '1'; frame.classList.remove('img-loading');
   } else {
     img.style.opacity = '0'; frame.classList.add('img-loading');
@@ -1272,6 +1286,7 @@ function mpRestoreName() {
 }
 
 mpRestoreName();
+warmInitialImageCache();
 
 function openLightbox(src) {
   document.getElementById('lightboxImg').src = src;
