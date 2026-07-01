@@ -406,7 +406,7 @@
     <div class="kw-word" id="kwWord"></div>
     <div class="kw-quote">凭直觉就好，没有标准答案</div>
   </div>
-  <button class="btn btn-primary" onclick="startSelect()">开始选图</button>
+  <button class="btn btn-primary" id="startSelectBtn" onclick="startSelect()">开始选图</button>
   <button class="change-link" onclick="changeKeyword()">↻ 换一个关键词</button>
   <div class="scorebox">
     <span class="sb-label">我的得分</span>
@@ -557,7 +557,7 @@ const KEYWORDS = [
   "挣扎","软肋","满足","秘密","好奇"
 ];
 
-const IMG_DIR = "img/";
+const IMG_DIR = "img-fast/";
 
 let currentKeyword = null;
 let usedKeywords   = new Set();
@@ -572,6 +572,7 @@ const IMAGE_BACKGROUND_BATCH_SIZE = 6;
 const IMAGE_BACKGROUND_DELAY = 180;
 let preloadRunId = 0;
 let setImgVersion = 0;
+let startSelectPending = false;
 const state = {
   playMode: 'sync'
 };
@@ -588,8 +589,7 @@ function imageSrcByIndex(imgIdx) {
   return IMG_DIR + IMAGES[imgIdx];
 }
 
-function preloadImageByIndex(imgIdx, priority = 'auto') {
-  const src = imageSrcByIndex(imgIdx);
+function preloadImageBySrc(src, priority = 'auto') {
   const cached = imagePreloadCache.get(src);
   if (cached?.img && priority === 'high') cached.img.fetchPriority = 'high';
   if (cached) return cached;
@@ -621,6 +621,10 @@ function preloadImageByIndex(imgIdx, priority = 'auto') {
     record.ready = true;
   }
   return record;
+}
+
+function preloadImageByIndex(imgIdx, priority = 'auto') {
+  return preloadImageBySrc(imageSrcByIndex(imgIdx), priority);
 }
 
 function isImageReady(imgIdx) {
@@ -657,6 +661,26 @@ function ensureReadyImageAtCurrentPosition() {
   if (promoteReadyImageIntoPosition()) return true;
   preloadImageByIndex(browseOrder[browsePos], 'high');
   return false;
+}
+
+async function waitForReadyImageNearCurrent(timeout = 1200) {
+  if (!browseOrder.length) return false;
+  preloadImageRunway();
+  if (promoteReadyImageIntoPosition()) return true;
+
+  const count = Math.min(IMAGE_RUNWAY_SIZE, browseOrder.length);
+  const records = [];
+  for (let i = 0; i < count; i++) {
+    const pos = (browsePos + i + browseOrder.length) % browseOrder.length;
+    records.push(preloadImageByIndex(browseOrder[pos], 'high'));
+  }
+
+  await Promise.race([
+    Promise.any(records.map(record => record.promise)).catch(() => null),
+    new Promise(resolve => setTimeout(resolve, timeout))
+  ]);
+
+  return promoteReadyImageIntoPosition() || isImageReady(browseOrder[browsePos]);
 }
 
 function preloadAdjacentImages() {
@@ -818,50 +842,60 @@ function newKeyword() {
 }
 
 /* ---------- 第一轮：选图 ---------- */
-function startSelect() {
-  if (!browseOrder.length) prepareBrowseImagesForRound();
-  browsePos = 0;
-  selected = [];
-  rankOrder = [];
-  ensureReadyImageAtCurrentPosition();
-  renderSelect();
-  showScreen('selectScreen');
+async function startSelect() {
+  if (startSelectPending) return;
+  startSelectPending = true;
+  const startBtn = document.getElementById('startSelectBtn');
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.classList.add('btn-disabled');
+    startBtn.textContent = '图片准备中...';
+  }
+
+  try {
+    if (!browseOrder.length) prepareBrowseImagesForRound();
+    browsePos = 0;
+    selected = [];
+    rankOrder = [];
+    ensureReadyImageAtCurrentPosition();
+    await waitForReadyImageNearCurrent();
+    renderSelect();
+    showScreen('selectScreen');
+  } finally {
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.classList.remove('btn-disabled');
+      startBtn.textContent = '开始选图';
+    }
+    startSelectPending = false;
+  }
 }
 function setImg(src) {
   const version = ++setImgVersion;
   const img = document.getElementById('bigImg');
   const frame = document.getElementById('imgFrame');
-
-  const cached = imagePreloadCache.get(src);
-  if (cached?.ready || (cached?.img?.complete && cached?.img?.naturalWidth > 0)) {
+  const show = () => {
     img.src = src;
     img.style.opacity = '1';
     frame.classList.remove('img-loading');
+  };
+
+  const record = imagePreloadCache.get(src) || preloadImageBySrc(src, 'high');
+  if (record.ready || (record.img?.complete && record.img?.naturalWidth > 0)) {
+    show();
     return;
   }
 
-  const tmp = cached?.img || new Image();
-  if (!cached) imagePreloadCache.set(src, { img: tmp, loaded: false });
-  tmp.onload = () => {
+  img.style.opacity = '0';
+  frame.classList.add('img-loading');
+  record.promise.then(() => {
     if (version !== setImgVersion) return;
-    const record = imagePreloadCache.get(src);
-    if (record) { record.loaded = true; record.ready = tmp.naturalWidth > 0; }
-    img.src = src;
-    img.style.opacity = '1';
+    if (record.ready || (record.img?.complete && record.img?.naturalWidth > 0)) {
+      show();
+      return;
+    }
     frame.classList.remove('img-loading');
-  };
-  tmp.onerror = () => {
-    if (version !== setImgVersion) return;
-    const record = imagePreloadCache.get(src);
-    if (record) { record.loaded = true; record.ready = false; }
-    frame.classList.remove('img-loading');
-  };
-  tmp.src = src;
-  if (tmp.complete && tmp.naturalWidth > 0) {
-    img.src = src; img.style.opacity = '1'; frame.classList.remove('img-loading');
-  } else {
-    img.style.opacity = '0'; frame.classList.add('img-loading');
-  }
+  });
 }
 function renderSelect() {
   const target = selectTargetCount();
