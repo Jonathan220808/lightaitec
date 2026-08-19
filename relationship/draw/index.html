@@ -57,7 +57,7 @@
     }
 
     .app {
-      width: min(100%, 500px);
+      width: min(100%, 620px);
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -527,7 +527,7 @@
 
     .canvas-wrap {
       width: 100%;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 1 / 1.08;
       background: #fff;
       overflow: hidden;
       position: relative;
@@ -542,6 +542,45 @@
       background: #fff;
       touch-action: none;
       cursor: crosshair;
+      transform: scale(var(--canvas-zoom, 1));
+      transform-origin: center;
+    }
+
+    .board-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .undo-button,
+    .zoom-button {
+      min-height: 42px;
+      border: 3px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      font-size: 14px;
+      font-weight: 900;
+      padding: 0 14px;
+      box-shadow: 0 5px 0 rgba(21, 19, 19, .12);
+    }
+
+    .undo-button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .zoom-reset {
+      min-width: 58px;
     }
 
     .toolbar {
@@ -574,6 +613,8 @@
     }
 
     .tool-button:focus-visible,
+    .undo-button:focus-visible,
+    .zoom-button:focus-visible,
     .mode-choice:focus-visible,
     .size-dot:focus-visible,
     .color-dot:focus-visible,
@@ -1038,6 +1079,15 @@
           <canvas id="drawingCanvas"></canvas>
         </div>
 
+        <div class="board-actions" aria-label="画布操作">
+          <button class="undo-button" type="button" id="undoButton" disabled>撤销</button>
+          <div class="zoom-controls" aria-label="画布缩放">
+            <button class="zoom-button" type="button" id="zoomOutButton" aria-label="缩小画板">−</button>
+            <button class="zoom-button zoom-reset" type="button" id="zoomResetButton">100%</button>
+            <button class="zoom-button" type="button" id="zoomInButton" aria-label="放大画板">＋</button>
+          </div>
+        </div>
+
         <div class="toolbar" aria-label="绘画工具">
           <div class="tool-row">
             <button class="tool-button is-active" type="button" data-tool="brush" aria-label="画笔">
@@ -1145,6 +1195,11 @@
     const finishButton = document.getElementById('finishButton');
     const toast = document.getElementById('toast');
     const boardShell = document.getElementById('boardShell');
+    const canvasWrap = document.querySelector('.canvas-wrap');
+    const undoButton = document.getElementById('undoButton');
+    const zoomOutButton = document.getElementById('zoomOutButton');
+    const zoomResetButton = document.getElementById('zoomResetButton');
+    const zoomInButton = document.getElementById('zoomInButton');
     const canvasGuidePanel = document.getElementById('canvasGuidePanel');
     const enterCanvasBoardButton = document.getElementById('enterCanvasBoardButton');
     const guessSetupPanel = document.getElementById('guessSetupPanel');
@@ -1180,7 +1235,12 @@
       eraserSize: 28,
       isDrawing: false,
       hasDrawing: false,
+      drawHistory: [],
       lastPoint: null,
+      canvasZoom: 1,
+      activePointers: new Map(),
+      pinchStartDistance: null,
+      pinchStartZoom: 1,
       toastTimer: null,
       guessPrompt: '饭碗',
       guessFinished: false,
@@ -1193,7 +1253,7 @@
     };
 
     function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvasWrap.getBoundingClientRect();
       const ratio = window.devicePixelRatio || 1;
       const snapshot = document.createElement('canvas');
       snapshot.width = canvas.width;
@@ -1217,22 +1277,38 @@
 
     function getPoint(event) {
       const rect = canvas.getBoundingClientRect();
+      const zoom = state.canvasZoom || 1;
       return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
+        x: (event.clientX - rect.left) / zoom,
+        y: (event.clientY - rect.top) / zoom
       };
     }
 
     function startDrawing(event) {
       if (state.mode === 'relay' && state.relayCurrentType !== 'draw') return;
       event.preventDefault();
+      state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       canvas.setPointerCapture(event.pointerId);
+      if (state.activePointers.size >= 2) {
+        state.isDrawing = false;
+        state.lastPoint = null;
+        startPinchZoom();
+        return;
+      }
+      saveCanvasState();
       state.isDrawing = true;
       state.lastPoint = getPoint(event);
       draw(event);
     }
 
     function draw(event) {
+      if (state.activePointers.has(event.pointerId)) {
+        state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+      if (state.activePointers.size >= 2) {
+        handlePinchZoom(event);
+        return;
+      }
       if (!state.isDrawing || !state.lastPoint) return;
       event.preventDefault();
 
@@ -1252,9 +1328,73 @@
       if (event && canvas.hasPointerCapture(event.pointerId)) {
         canvas.releasePointerCapture(event.pointerId);
       }
+      if (event) state.activePointers.delete(event.pointerId);
+      if (state.activePointers.size < 2) {
+        state.pinchStartDistance = null;
+      }
       state.isDrawing = false;
       state.lastPoint = null;
       ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function saveCanvasState() {
+      if (!canvas.width || !canvas.height) return;
+      state.drawHistory.push(canvas.toDataURL('image/png'));
+      if (state.drawHistory.length > 40) state.drawHistory.shift();
+      renderUndoState();
+    }
+
+    function renderUndoState() {
+      undoButton.disabled = state.drawHistory.length === 0;
+    }
+
+    function undoCanvas() {
+      const previous = state.drawHistory.pop();
+      if (!previous) {
+        showToast('已经没有可以撤销的步骤');
+        renderUndoState();
+        return;
+      }
+      const rect = canvasWrap.getBoundingClientRect();
+      const image = new Image();
+      image.onload = () => {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.drawImage(image, 0, 0, rect.width, rect.height);
+        state.hasDrawing = state.drawHistory.length > 0;
+        renderUndoState();
+      };
+      image.src = previous;
+    }
+
+    function setCanvasZoom(nextZoom) {
+      const zoom = Math.max(1, Math.min(2.6, nextZoom));
+      state.canvasZoom = Number(zoom.toFixed(2));
+      document.documentElement.style.setProperty('--canvas-zoom', state.canvasZoom);
+      zoomResetButton.textContent = `${Math.round(state.canvasZoom * 100)}%`;
+    }
+
+    function pointerDistance(points) {
+      const [a, b] = points;
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function startPinchZoom() {
+      const points = [...state.activePointers.values()];
+      if (points.length < 2) return;
+      state.pinchStartDistance = pointerDistance(points);
+      state.pinchStartZoom = state.canvasZoom;
+    }
+
+    function handlePinchZoom(event) {
+      event.preventDefault();
+      const points = [...state.activePointers.values()];
+      if (points.length < 2) return;
+      if (!state.pinchStartDistance) startPinchZoom();
+      const distance = pointerDistance(points);
+      if (!state.pinchStartDistance) return;
+      setCanvasZoom(state.pinchStartZoom * (distance / state.pinchStartDistance));
     }
 
     function selectTool(tool) {
@@ -1289,12 +1429,17 @@
       renderBrushOptions();
     }
 
-    function clearCanvas() {
-      const rect = canvas.getBoundingClientRect();
+    function clearCanvas(remember = false) {
+      if (remember && state.hasDrawing) saveCanvasState();
+      const rect = canvasWrap.getBoundingClientRect();
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, rect.width, rect.height);
       state.hasDrawing = false;
+      if (!remember) {
+        state.drawHistory = [];
+        renderUndoState();
+      }
       hideClearConfirm();
     }
 
@@ -1739,7 +1884,11 @@
     modeBackButton.addEventListener('click', showModeSelect);
     switchPromptButton.addEventListener('click', newPrompt);
     finishButton.addEventListener('click', finishDrawing);
-    confirmClearButton.addEventListener('click', clearCanvas);
+    undoButton.addEventListener('click', undoCanvas);
+    zoomOutButton.addEventListener('click', () => setCanvasZoom(state.canvasZoom - .2));
+    zoomResetButton.addEventListener('click', () => setCanvasZoom(1));
+    zoomInButton.addEventListener('click', () => setCanvasZoom(state.canvasZoom + .2));
+    confirmClearButton.addEventListener('click', () => clearCanvas(true));
     cancelClearButton.addEventListener('click', hideClearConfirm);
     relayReviewButton.addEventListener('click', () => {
       historyPanel.classList.toggle('is-visible');
@@ -1763,6 +1912,8 @@
     window.addEventListener('resize', resizeCanvas);
 
     document.documentElement.style.setProperty('--current-color', state.currentColor);
+    setCanvasZoom(1);
+    renderUndoState();
     renderBrushOptions();
     renderColorOptions();
     renderEraserOptions();
