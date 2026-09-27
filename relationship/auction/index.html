@@ -56,6 +56,12 @@
     .divider-line { flex:1; height:1px; background:rgba(138,122,90,.2); }
     .divider-text { font-size:12px; color:var(--muted); }
     .error-msg { font-size:13px; color:#C0392B; text-align:center; min-height:18px; margin-top:8px; }
+    .restore-box { display:none; background:var(--gold-lt); border:1px solid rgba(200,151,42,.28); border-radius:16px; padding:14px; margin:14px 0 16px; }
+    .restore-text { font-size:13px; color:var(--text); line-height:1.7; margin-bottom:10px; }
+    .restore-actions { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+    .restore-main, .restore-clear { border:none; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:700; }
+    .restore-main { background:var(--gold); color:#fff; padding:11px 12px; font-size:13px; }
+    .restore-clear { background:#fff; color:var(--muted); padding:11px 12px; font-size:12px; border:1px solid rgba(138,122,90,.22); }
     /* 两步流程：第二步初始隐藏 */
     #step2 { display:none; }
 
@@ -216,6 +222,13 @@
   <!-- 第二步：创建或加入（确认昵称后显示） -->
   <div id="step2">
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">你好，<b id="confirmedName" style="color:var(--text)"></b> 👋</p>
+    <div class="restore-box" id="restoreBox">
+      <p class="restore-text">上次有一个未退出的拍卖房间：<b id="restoreCode" style="color:var(--gold-dk)"></b></p>
+      <div class="restore-actions">
+        <button class="restore-main" onclick="restoreLastRoom()">回到上次房间</button>
+        <button class="restore-clear" onclick="dismissSavedRoom()">不开这个</button>
+      </div>
+    </div>
     <button class="btn btn-gold" onclick="createRoom()">创建房间（我是主持人）</button>
     <div class="divider"><div class="divider-line"></div><div class="divider-text">或者加入已有房间</div><div class="divider-line"></div></div>
     <input class="input-field" id="codeInput" type="text" placeholder="输入4位房间号" maxlength="4" pattern="[0-9]*" inputmode="numeric">
@@ -366,15 +379,23 @@
 const WS_URL = 'wss://lightaitec.com/relationship/auction/ws';
 const GAME_KEY = 'auction';
 const roomSession = window.RelationshipSession;
+const AUTO_RESTORE_WINDOW_MS = 2 * 60 * 1000;
+const CONNECT_TIMEOUT_MS = 8000;
 
 let ws = null;
 let myId = null;
 let myName = '';
 let state = null;
 let isHost = false;
+let inRoom = false;
 let intentionalClose = false;
 let restoreRoomCode = '';
 let restoreRetryCount = 0;
+let reconnectTimer = null;
+let restoreRetryTimer = null;
+let connectTimeoutTimer = null;
+let activeConnectionId = 0;
+let pendingRestoreRoom = null;
 
 // ── 第一步：确认昵称 ──
 function confirmName() {
@@ -385,25 +406,87 @@ function confirmName() {
   document.getElementById('confirmedName').textContent = myName;
   document.getElementById('step1').style.display = 'none';
   document.getElementById('step2').style.display = 'block';
+  renderRestoreRoomPrompt();
 }
 
 // ── WebSocket ──
+function clearConnectionTimers() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (restoreRetryTimer) {
+    clearTimeout(restoreRetryTimer);
+    restoreRetryTimer = null;
+  }
+  if (connectTimeoutTimer) {
+    clearTimeout(connectTimeoutTimer);
+    connectTimeoutTimer = null;
+  }
+}
+
+function closeSocketIntentionally() {
+  intentionalClose = true;
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+}
+
+function startFreshRoomAction() {
+  clearConnectionTimers();
+  closeSocketIntentionally();
+  roomSession.clearRoom(GAME_KEY);
+  pendingRestoreRoom = null;
+  restoreRoomCode = '';
+  restoreRetryCount = 0;
+  inRoom = false;
+  state = null;
+  myId = null;
+  isHost = false;
+  renderRestoreRoomPrompt();
+}
+
 function connect(onOpen) {
+  clearConnectionTimers();
+  closeSocketIntentionally();
   intentionalClose = false;
-  ws = new WebSocket(WS_URL);
-  ws.onopen = () => { if (onOpen) onOpen(); };
-  ws.onmessage = e => handleMsg(JSON.parse(e.data));
-  ws.onclose = () => {
-    if (!intentionalClose && state && state.state !== 'results') {
+  const connectionId = ++activeConnectionId;
+  const socket = new WebSocket(WS_URL);
+  ws = socket;
+  connectTimeoutTimer = setTimeout(() => {
+    if (connectionId !== activeConnectionId || ws !== socket) return;
+    roomSession.showConnectionStatus('failed', '连接超时，请重试');
+    closeSocketIntentionally();
+  }, CONNECT_TIMEOUT_MS);
+  socket.onopen = () => {
+    if (connectionId !== activeConnectionId) return;
+    if (connectTimeoutTimer) {
+      clearTimeout(connectTimeoutTimer);
+      connectTimeoutTimer = null;
+    }
+    if (onOpen) onOpen();
+  };
+  socket.onmessage = e => {
+    if (connectionId !== activeConnectionId) return;
+    handleMsg(JSON.parse(e.data));
+  };
+  socket.onclose = () => {
+    if (connectionId !== activeConnectionId) return;
+    if (connectTimeoutTimer) {
+      clearTimeout(connectTimeoutTimer);
+      connectTimeoutTimer = null;
+    }
+    if (!intentionalClose && inRoom && state?.code && state.state !== 'results') {
       roomSession.showConnectionStatus('reconnecting', '正在重新连接...');
-      setTimeout(reconnect, 2000);
+      reconnectTimer = setTimeout(reconnect, 2000);
     }
   };
-  ws.onerror = () => {};
+  socket.onerror = () => {};
 }
 
 function reconnect() {
-  if (!state?.code || !myName) return;
+  if (!state?.code || !myName || !inRoom) return;
   connect(() => send({ type: 'join_room', roomCode: state.code, ...roomSession.identityPayload(myName) }));
 }
 
@@ -411,27 +494,50 @@ function send(msg) {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
 }
 
+function resolveMyId(msg) {
+  if (msg.selfId || msg.playerId || msg.myId) return msg.selfId || msg.playerId || msg.myId;
+  const profile = roomSession.getProfile();
+  const byToken = state?.players?.find(p => p.playerToken && p.playerToken === profile?.playerToken);
+  if (byToken) return byToken.id;
+  return state?.players?.find(p => p.name === myName)?.id || myId;
+}
+
+function renderRoomState() {
+  if (!state) return;
+  if (state.state === 'lobby') showLobby();
+  else if (state.state === 'preview') showPreview();
+  else if (state.state === 'bidding') showBidding();
+  else if (state.state === 'results') showResults();
+}
+
+function isRoomGoneError(message) {
+  const text = String(message || '').toLowerCase();
+  return /不存在|失效|结束|过期|not found|expired|closed|ended/.test(text);
+}
+
 // ── 消息处理 ──
 function handleMsg(msg) {
   switch (msg.type) {
     case 'room_created':
-      myId = msg.state.players[0].id;
-      isHost = true;
       state = msg.state;
+      myId = resolveMyId(msg) || msg.state.players[0].id;
+      isHost = true;
+      inRoom = true;
       rememberRoom();
       showLobby();
       break;
     case 'joined':
     case 'rejoined':
+      const wasRestoring = !!restoreRoomCode && restoreRoomCode === msg.state.code;
       state = msg.state;
-      myId = state.players.find(p => p.name === myName)?.id;
+      myId = resolveMyId(msg);
       isHost = (myId === state.hostId);
+      inRoom = true;
       rememberRoom();
-      roomSession.showConnectionStatus('restored', '已回到房间');
-      if (state.state === 'lobby') showLobby();
-      else if (state.state === 'preview') showPreview();
-      else if (state.state === 'bidding') showBidding();
-      else if (state.state === 'results') showResults();
+      if (wasRestoring || msg.type === 'rejoined') {
+        roomSession.showConnectionStatus('restored', '已回到房间');
+      }
+      renderRoomState();
       break;
     case 'player_joined':
     case 'player_back':
@@ -467,12 +573,21 @@ function handleMsg(msg) {
       break;
     case 'game_over':
       state = msg.state;
+      inRoom = false;
       roomSession.clearRoom(GAME_KEY);
       setTimeout(showResults, 500);
       break;
     case 'error':
-      roomSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
       if (retryRestoreAfterNameCollision(msg.message)) break;
+      roomSession.showConnectionStatus('failed', msg.message || '连接失败，请重试');
+      if (isRoomGoneError(msg.message)) {
+        roomSession.clearRoom(GAME_KEY);
+        pendingRestoreRoom = null;
+        restoreRoomCode = '';
+        restoreRetryCount = 0;
+        inRoom = false;
+        renderRestoreRoomPrompt();
+      }
       document.getElementById('joinError').textContent = msg.message;
       break;
   }
@@ -481,8 +596,8 @@ function handleMsg(msg) {
 function retryRestoreAfterNameCollision(message) {
   if (!restoreRoomCode || !roomSession.isRetryableRestoreError(message) || restoreRetryCount >= 5) return false;
   restoreRetryCount += 1;
-  roomSession.showConnectionStatus('reconnecting', 'Waiting for previous connection...');
-  setTimeout(() => {
+  roomSession.showConnectionStatus('reconnecting', '正在等待上一次连接释放...');
+  restoreRetryTimer = setTimeout(() => {
     connect(() => send({ type: 'join_room', roomCode: restoreRoomCode, ...roomSession.identityPayload(myName) }));
   }, 900 + restoreRetryCount * 500);
   return true;
@@ -490,8 +605,10 @@ function retryRestoreAfterNameCollision(message) {
 
 function rememberRoom() {
   if (!state?.code || !myId) return;
+  clearConnectionTimers();
   restoreRoomCode = '';
   restoreRetryCount = 0;
+  inRoom = true;
   roomSession.saveRoom({
     gameKey: GAME_KEY,
     roomCode: state.code,
@@ -504,6 +621,7 @@ function rememberRoom() {
 // ── 房间操作 ──
 function createRoom() {
   document.getElementById('joinError').textContent = '';
+  startFreshRoomAction();
   connect(() => send({ type: 'create_room', ...roomSession.identityPayload(myName) }));
 }
 
@@ -511,13 +629,23 @@ function joinRoom() {
   const code = document.getElementById('codeInput').value.trim();
   if (!code || code.length !== 4) { document.getElementById('joinError').textContent = '请输入4位房间号'; return; }
   document.getElementById('joinError').textContent = '';
+  startFreshRoomAction();
   connect(() => send({ type: 'join_room', roomCode: code, ...roomSession.identityPayload(myName) }));
 }
 
 function leaveRoom() {
-  intentionalClose = true;
+  if (ws && ws.readyState === 1 && inRoom) send({ type: 'leave_room' });
+  clearConnectionTimers();
+  closeSocketIntentionally();
   roomSession.clearRoom(GAME_KEY);
-  ws && ws.close();
+  pendingRestoreRoom = null;
+  restoreRoomCode = '';
+  restoreRetryCount = 0;
+  inRoom = false;
+  state = null;
+  myId = null;
+  isHost = false;
+  renderRestoreRoomPrompt();
   showScreen('startScreen');
 }
 function startGame() { send({ type: 'start_game' }); }
@@ -737,13 +865,50 @@ function restoreSessionOnLoad() {
     document.getElementById('step1').style.display = 'none';
     document.getElementById('step2').style.display = 'block';
   }
+  renderRestoreRoomPrompt();
   const savedRoom = roomSession.getRoom(GAME_KEY);
-  if (savedRoom && savedName) {
-    restoreRoomCode = savedRoom.roomCode;
-    restoreRetryCount = 0;
-    roomSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
-    connect(() => send({ type: 'join_room', roomCode: savedRoom.roomCode, ...roomSession.identityPayload(myName) }));
+  if (savedRoom && savedName && Date.now() - savedRoom.updatedAt <= AUTO_RESTORE_WINDOW_MS) {
+    restoreLastRoom();
   }
+}
+
+function renderRestoreRoomPrompt() {
+  const box = document.getElementById('restoreBox');
+  const code = document.getElementById('restoreCode');
+  if (!box || !code) return;
+  pendingRestoreRoom = roomSession.getRoom(GAME_KEY);
+  if (!pendingRestoreRoom) {
+    box.style.display = 'none';
+    code.textContent = '';
+    return;
+  }
+  code.textContent = pendingRestoreRoom.roomCode;
+  box.style.display = 'block';
+}
+
+function restoreLastRoom() {
+  const savedRoom = pendingRestoreRoom || roomSession.getRoom(GAME_KEY);
+  if (!savedRoom) {
+    renderRestoreRoomPrompt();
+    document.getElementById('joinError').textContent = '上次房间已经失效，可以新建或输入房间号';
+    return;
+  }
+  clearConnectionTimers();
+  closeSocketIntentionally();
+  restoreRoomCode = savedRoom.roomCode;
+  restoreRetryCount = 0;
+  inRoom = false;
+  state = null;
+  myId = null;
+  isHost = false;
+  document.getElementById('joinError').textContent = '';
+  roomSession.showConnectionStatus('reconnecting', `正在回到 ${savedRoom.roomCode} 房间...`);
+  connect(() => send({ type: 'join_room', roomCode: savedRoom.roomCode, ...roomSession.identityPayload(myName) }));
+}
+
+function dismissSavedRoom() {
+  startFreshRoomAction();
+  document.getElementById('joinError').textContent = '';
 }
 
 restoreSessionOnLoad();
