@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>心动信箱</title>
+  <style>
+    :root {
+      --bg: #EEE8DF;
+      --paper: #FFF9EE;
+      --paper-2: #F3E2C8;
+      --ink: #2D2119;
+      --muted: #847366;
+      --accent: #C97D6C;
+      --accent-2: #6F8F83;
+      --stamp-blue: #8FB1AE;
+      --line: rgba(45,33,25,.14);
+      --ease: cubic-bezier(.16,1,.3,1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+      background:
+        radial-gradient(circle at 22% 8%, rgba(255,255,255,.7), transparent 28%),
+        radial-gradient(circle at 78% 6%, rgba(205,151,113,.22), transparent 32%),
+        linear-gradient(180deg, #F2EEE8 0%, #E8DED2 100%);
+      padding: 26px 18px 64px;
+    }
+    button { font: inherit; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .page { width: min(100%, 760px); margin: 0 auto; }
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+    .back { color: var(--muted); text-decoration: none; font-size: 13px; letter-spacing: .06em; }
+    .label { color: rgba(45,33,25,.42); font-size: 11px; font-weight: 800; letter-spacing: .18em; }
+    .screen { display: none; animation: rise .42s var(--ease) both; }
+    .screen.active { display: block; }
+    .hero { color: var(--ink); margin-bottom: 22px; }
+    .kicker { font-size: 11px; font-weight: 900; letter-spacing: .2em; color: var(--accent); margin-bottom: 10px; }
+    h1 { font-size: clamp(42px, 12vw, 72px); line-height: 1.02; letter-spacing: -.03em; margin-bottom: 12px; }
+    .lead { color: var(--muted); line-height: 1.9; font-size: 15px; max-width: 620px; }
+    .notice-card, .letter-stage { background: rgba(255,249,239,.72); border: 1px solid rgba(255,255,255,.72); border-radius: 24px; box-shadow: 0 30px 80px rgba(79,59,43,.12); overflow: hidden; }
+    .notice-inner { padding: 26px; display: grid; gap: 18px; }
+    .notice-title { font-size: 21px; font-weight: 900; }
+    .notice-copy { color: var(--muted); line-height: 1.86; font-size: 14px; }
+    .rule-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .rule { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: rgba(255,255,255,.5); }
+    .rule strong { display: block; margin-bottom: 6px; font-size: 14px; }
+    .rule span { color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .commit-button { width: 100%; min-height: 64px; border-radius: 18px; background: #251417; color: #fff; font-weight: 900; font-size: clamp(15px, 4vw, 19px); line-height: 1.45; padding: 12px 18px; }
+    .letter-stage { padding: clamp(18px, 5vw, 34px); }
+    .stage-top { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .mailbox {
+      min-height: min(72vh, 660px);
+      display: grid;
+      place-items: center;
+      position: relative;
+      padding: 4px 0 24px;
+    }
+    .envelope-photo {
+      width: min(100%, 620px);
+      position: relative;
+      display: grid;
+      place-items: center;
+      filter: drop-shadow(0 28px 38px rgba(90, 65, 43, .16));
+      --reading-paper-opacity: 0;
+    }
+    .envelope-photo img {
+      width: 100%;
+      display: block;
+      border-radius: 18px;
+      user-select: none;
+      pointer-events: none;
+    }
+    .drawn-letter {
+      position: absolute;
+      z-index: 5;
+      left: 7.5%;
+      right: 7.5%;
+      top: 7%;
+      bottom: 10%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: clamp(30px, 7vw, 70px) clamp(26px, 7vw, 68px);
+      opacity: var(--reading-paper-opacity);
+      transform: translateY(30px) scale(.96);
+      transition: opacity .34s ease, transform .52s var(--ease);
+      pointer-events: none;
+      border-radius: 16px;
+      background:
+        linear-gradient(rgba(255,255,255,.62), rgba(255,255,255,.2)),
+        linear-gradient(180deg, #FFFDF7 0%, #F8EBD8 100%);
+      border: 1px solid rgba(106, 78, 54, .12);
+      box-shadow:
+        0 22px 46px rgba(79, 59, 43, .18),
+        inset 0 1px 0 rgba(255,255,255,.86);
+      overflow: hidden;
+      --question-line-height: 1.92em;
+    }
+
+    .drawn-letter::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .18;
+      pointer-events: none;
+      background-image:
+        repeating-linear-gradient(55deg, rgba(125, 95, 64, .12) 0 1px, transparent 1px 8px),
+        repeating-linear-gradient(-35deg, rgba(255,255,255,.34) 0 1px, transparent 1px 10px);
+      mix-blend-mode: multiply;
+    }
+
+    .drawn-letter::after {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(116, 82, 54, .06);
+      border-radius: 12px;
+      opacity: .8;
+      pointer-events: none;
+    }
+
+    .letter-mark {
+      position: absolute;
+      z-index: 4;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .letter-heart {
+      top: clamp(22px, 5vw, 42px);
+      right: clamp(26px, 6vw, 54px);
+      color: rgba(198, 117, 101, .72);
+      font-size: clamp(28px, 7vw, 46px);
+      line-height: 1;
+      transform: rotate(-7deg);
+    }
+
+    .letter-seal {
+      right: clamp(28px, 7vw, 64px);
+      bottom: clamp(24px, 6vw, 54px);
+      width: clamp(58px, 14vw, 86px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(135, 83, 57, .28);
+      border-radius: 50%;
+      color: rgba(135, 83, 57, .46);
+      font-size: clamp(10px, 2.4vw, 13px);
+      font-weight: 800;
+      letter-spacing: .08em;
+      transform: rotate(-10deg);
+    }
+
+    .mailbox.has-question .envelope-photo {
+      --reading-paper-opacity: 1;
+    }
+
+    .mailbox.has-question .drawn-letter {
+      transform: translateY(-8px) scale(1);
+    }
+    .question {
+      position: relative;
+      z-index: 6;
+      font-family: 'Noto Serif SC','Songti SC',serif;
+      font-size: clamp(19px, 4.2vw, 30px);
+      line-height: var(--question-line-height);
+      color: #31251E;
+      text-shadow: 0 1px 0 rgba(255,255,255,.72);
+      max-width: 15em;
+      padding: .12em .22em .24em;
+      text-decoration-line: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: rgba(116, 82, 54, .34);
+      text-decoration-thickness: 1px;
+      text-underline-offset: .36em;
+    }
+    .placeholder { color: #A48378; font-size: 16px; font-family: inherit; }
+    .actions { display: grid; grid-template-columns: 1fr; gap: 10px; max-width: 340px; margin: 0 auto; }
+    .action { min-height: 56px; border-radius: 999px; background: #2D2119; color: #fff; font-weight: 900; letter-spacing: .04em; }
+    .action.secondary { background: #F1E5D7; color: var(--ink); }
+    @media (max-width: 620px) {
+      .rule-grid { grid-template-columns: 1fr; }
+      .mailbox { min-height: 480px; }
+      .drawn-letter {
+        left: 5%;
+        right: 5%;
+        top: 6%;
+        bottom: 9%;
+        padding: 28px 22px;
+      }
+      .question {
+        font-size: clamp(17px, 5.1vw, 23px);
+        max-width: 14em;
+      }
+      .letter-heart {
+        top: 20px;
+        right: 22px;
+        font-size: 28px;
+      }
+      .letter-seal {
+        right: 22px;
+        bottom: 22px;
+        width: 54px;
+        font-size: 9px;
+      }
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="nav"><a class="back" href="../">← 返回</a><span class="label">RELATIONSHIP GAME · 08</span></nav>
+    <section class="screen active" id="noticeScreen">
+      <div class="hero"><div class="kicker">HEART MAILBOX</div><h1>心动信箱</h1><p class="lead">抽一封信，回答一个问题。它不是考试，而是让两个人慢慢看见真实彼此的一次邀请。</p></div>
+      <div class="notice-card"><div class="notice-inner">
+        <div><div class="notice-title">开始之前，先做一个小小约定</div><p class="notice-copy">这些问题没有标准答案，也不是为了证明谁更正确。真正重要的是，当彼此给出不同答案时，我们仍然愿意认真倾听、温柔理解，并尊重对方的边界。</p></div>
+        <div class="rule-grid">
+          <div class="rule"><strong>先听完，再回应</strong><span>不急着打断、解释或反驳，先让对方把话说完整。</span></div>
+          <div class="rule"><strong>带着好奇靠近</strong><span>不假设自己已经完全了解，而是愿意重新认识眼前这个具体的人。</span></div>
+          <div class="rule"><strong>表达感受，不攻击</strong><span>可以坦诚分享失落、难过和期待，但不把表达变成指责。</span></div>
+          <div class="rule"><strong>允许跳过问题</strong><span>每个人都可以决定自己愿意分享多少，以及以怎样的节奏靠近。</span></div>
+        </div>
+        <button class="commit-button" id="commitButton">我愿意带着真诚与好奇，去认识真实的你，并尊重彼此的不同</button>
+      </div></div>
+    </section>
+    <section class="screen" id="playScreen">
+      <div class="hero"><div class="kicker">OPEN A LETTER</div><h1>心动信箱</h1><p class="lead">每次只打开一封信。读完以后，可以先停一会儿，再开始回答。</p></div>
+      <div class="letter-stage">
+        <div class="stage-top"><button class="action secondary" type="button" id="backNoticeButton">查看约定</button></div>
+        <div class="mailbox" id="mailboxStage">
+          <div class="envelope-photo">
+            <img src="./assets/heart-envelope-reference.png" alt="打开的心动信封">
+            <div class="drawn-letter letter">
+              <span class="letter-mark letter-heart" aria-hidden="true">♡</span>
+              <span class="letter-mark letter-seal" aria-hidden="true">心动</span>
+              <div class="question" id="questionText"></div>
+            </div>
+          </div>
+        </div>
+        <div class="actions"><button class="action" id="drawButton">打开一封信</button></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const QUESTIONS = [
+  "在我们相处过的日子里，有没有一个瞬间，让你现在想起来仍然会忍不住微笑？",
+  "有没有一件我们一起做过的、看起来很普通的小事，却在你心里留下了特别的意义？",
+  "你记得我们曾经一起笑得停不下来的一次经历吗？那时候发生了什么？",
+  "如果要把我们的一段回忆变成一幅画，你会选择哪个画面？画面里会有什么？",
+  "有没有一个你曾经觉得很幸福，却一直没有告诉我的瞬间？",
+  "如果我们可以一起度过一个完全不用赶时间的周末，你希望那两天怎样度过？",
+  "什么样的小习惯或日常举动，会让你觉得两个人的生活特别温暖？",
+  "你更喜欢我们在一起时有很多有趣的对话，还是即使不说话，也能舒服地待在彼此身边？为什么？",
+  "如果我们可以创造一个只属于彼此的小小仪式，你希望是什么？",
+  "有没有一种非常简单、甚至不需要花钱的快乐，是你特别希望我们可以经常一起体验的？",
+  "有没有一个时刻，让你突然发现我身上有你以前没有注意到的闪光点？",
+  "如果你要向一个不认识我的朋友介绍我，你最希望他认识我的哪一面？",
+  "你觉得我身上有什么美好的品质，是我自己可能还没有意识到的？",
+  "在你眼中，我什么时候最有魅力？不一定是外表，也可以是一种状态或者行为。",
+  "你觉得我们身上有哪些不同的特质，反而让彼此变得更加有趣？",
+  "有没有一个关于你的有趣秘密或者奇怪习惯，是你觉得我知道以后一定会很惊讶的？",
+  "你觉得别人眼中的你，和真正的你之间，有什么很大的不同？",
+  "如果我们可以交换一天的身份，你最想体验我生活中的哪一个部分？",
+  "有没有一件关于你的事情，是你很希望我主动好奇、主动了解的？",
+  "关于我，有没有一个你一直很好奇，却还没有找到机会认真问我的问题？",
+  "如果我们突然得到两张可以去世界任何地方的机票，你希望我们的旅程从哪里开始？",
+  "如果可以和我一起学习一项我们都不会的新技能，你最想学什么？",
+  "假如我们要一起在一座陌生城市生活一个月，你希望那一个月会发生什么有趣的故事？",
+  "有没有一件疯狂一点、特别一点，甚至有些幼稚的事情，是你想和我一起尝试的？",
+  "如果我们能够一起创造一个全新的传统，每年都可以重复一次，你希望这个传统是什么？",
+  "小时候的你，最容易因为什么事情感到快乐？那种快乐现在还存在吗？",
+  "如果可以带我走进你童年的一个场景，你最想让我看见什么？",
+  "在你的成长经历中，有没有一个人曾经给过你很大的鼓励，让你至今仍然记得？",
+  "有没有一段过去的经历，让你成为了今天这样的人，但很少有人真正知道它对你的影响？",
+  "如果小时候的你能够遇见现在的你，你觉得他会为你感到骄傲吗？为什么？",
+  "当你完全独处、不需要在任何人面前表现自己的时候，你最真实的状态是什么样的？",
+  "有没有一种别人经常误解你的行为，其实背后有着完全不同的原因？",
+  "你觉得自己身上有哪些看起来矛盾，却又同时存在的性格特点？",
+  "什么样的环境或者活动，会让你觉得自己充满能量、特别自由？",
+  "有没有一种你不太喜欢的社交场景，是别人觉得很正常，但你其实会感到疲惫的？",
+  "如果让你定义什么是一个真正幸福的人生，你认为最重要的三件事是什么？",
+  "有没有一个你非常坚持的原则，即使别人不理解，你也不愿意轻易改变？",
+  "有什么事情是你以前非常在意，但随着成长，渐渐觉得没有那么重要了？",
+  "如果成功、自由、安全感和亲密关系不能同时拥有，你会怎样排列它们在你生命中的重要程度？",
+  "有没有一个你很欣赏的人，无论他是否出名，他身上有什么品质深深影响了你？",
+  "有没有一件事情，每当你做的时候，就会忘记时间，觉得自己真正地活着？",
+  "如果未来一年，你完全不需要担心收入和别人的评价，你最想把时间花在哪里？",
+  "有没有一个你一直藏在心里、很少认真和别人分享的梦想？",
+  "在你心里，什么样的生活会让你觉得充满热情，而不只是每天完成任务？",
+  "如果你知道自己一定不会失败，你最想勇敢地尝试什么事情？",
+  "在你成长的家庭中，有没有一个你特别喜欢的小传统，是你希望未来可以延续的？",
+  "你的家人曾经用什么特别的方式表达爱？这种方式怎样影响了今天的你？",
+  "在你的朋友当中，有没有一个特别懂你的人？你觉得他为什么能够真正理解你？",
+  "当你听到「家」这个词的时候，你脑海里首先浮现的是怎样的画面或者感觉？",
+  "在你的生命中，有哪些非常重要的人，是你希望我能够慢慢认识和了解的？为什么？",
+  "当你说「没事」的时候，内心有时候其实正在经历什么？",
+  "有没有一种情绪，是你经常会有，却很难向别人解释清楚的？",
+  "当你感到委屈的时候，你通常会选择直接说出来，还是先藏在心里？为什么？",
+  "有没有一种别人习以为常的行为，会让你特别容易感到难过或者失落？",
+  "你曾经在哪个时刻，感受到自己的情绪被一个人真正地理解和接纳？那个人做对了什么？",
+  "对你来说，被爱更像是被理解、被支持、被坚定选择，还是被允许自由地做自己？为什么？",
+  "有没有一种别人不太容易注意到的方式，其实是你在认真表达自己的爱？",
+  "你觉得在一段关系当中，什么样的关心最容易被忽略，却对你来说特别重要？",
+  "有没有一件不需要花很多钱、也不需要特别隆重的事情，却能让你深深感受到被珍惜？",
+  "当两个人表达爱的方式不一样时，你觉得怎样才能让彼此都感受到对方的心意？",
+  "在一段关系中，什么样的小细节会让你慢慢建立对一个人的信任？",
+  "有没有一种行为，会让你明显地感受到自己是被尊重的，而不只是被照顾的？",
+  "当你开始对一段关系感到不安的时候，你通常会更想靠近对方，还是想先保护自己、保持距离？",
+  "对你来说，什么样的坦诚能够让关系更加亲密？又有什么事情是你希望被温柔表达的？",
+  "如果有一天我们对彼此产生了误解，你希望我们怎样做，才能不轻易失去原本建立的信任？",
+  "有没有一个你习惯表现得很坚强的地方，其实你也很希望有人能够理解你的不容易？",
+  "在你的生命中，有没有一种害怕，是别人可能很难理解，但对你来说却非常真实的？",
+  "有没有一句「其实我也很需要……」，是你一直很难对别人说出口的？",
+  "当你觉得自己不够好、或者让别人失望的时候，你通常会怎样看待自己？",
+  "如果有一天，你在我面前展现了自己不那么美好、甚至有些狼狈的一面，你最担心我会怎样看待你？",
+  "当我们对同一件事情有不同看法的时候，你最希望我们怎样讨论，而不是急着说服对方？",
+  "当你与亲近的人发生争执时，你最容易出现什么样的反应？沉默、解释、妥协，还是其他方式？",
+  "有没有一种在争执中常见的语言或行为，会让你特别受伤，即使对方可能并没有那个意思？",
+  "对你来说，一个真正有诚意的道歉，最重要的是什么？",
+  "如果我们经历了一次很不愉快的冲突，即使问题已经解决了，你觉得还需要什么，才能让两个人的心重新靠近？",
+  "在一段亲密关系中，你觉得什么样的个人空间，是你希望自己始终可以保留的？",
+  "有没有一种亲密的表达方式，会让你感到特别自在？又有没有什么方式会让你感到压力？",
+  "当你想一个人待着，或者想和自己的朋友相处时，你希望另一半如何理解这件事情？",
+  "如果我们的亲密节奏不一样，一个人想靠近，另一个人却需要更多时间，你觉得我们可以怎样彼此尊重？",
+  "对你来说，一段既能够非常亲密，又不会让彼此失去自我的关系，应该是什么样的？",
+  "有没有一个你正在努力改变的地方，是你希望我能够看见你的努力，而不仅仅是最终的结果？",
+  "当你想尝试一件新事情，却对自己没有信心的时候，什么样的鼓励最能够帮助到你？",
+  "有没有一个你觉得我拥有、却还没有充分发挥的潜力，是你很期待看见它成长的？",
+  "你觉得我们可以在彼此的生命中扮演怎样的角色，让对方成为更好的自己，而不是试图改造成自己喜欢的样子？",
+  "如果未来我们成长的速度不一样，甚至开始拥有不同的兴趣和追求，你希望我们如何继续支持彼此？",
+  "当我们的生活变得非常忙碌，工作和责任占据了大部分时间，你觉得我们最应该优先保护什么？",
+  "在金钱和消费这件事情上，你更看重安全感、自由、生活体验，还是为未来做准备？为什么？",
+  "如果未来我们需要一起承担很多琐碎的责任，例如家务、家庭事务或者照顾他人，你希望我们怎样分工？",
+  "当我们面临一个很重要的现实选择，例如换工作、搬到另一座城市或者照顾家人，你希望我们怎样一起做决定？",
+  "当生活的压力让我们都很疲惫，甚至开始互相埋怨的时候，你觉得什么能够提醒我们：我们其实是站在同一边的？",
+  "如果有一天，我经历了一段很失败、很低落的时期，你觉得我们可以怎样一起面对，而不是让这段经历成为彼此的负担？",
+  "你觉得一段关系中，有哪些困难值得两个人一起承担，又有哪些责任需要各自学会承担？",
+  "如果未来有一天，我们发现彼此已经和刚认识时很不一样了，你希望我们怎样重新认识和理解对方？",
+  "在你心里，真正地「选择一个人」，除了说出承诺之外，还应该体现在哪些日常行动里？",
+  "有没有一个你希望我们始终坚持的关系原则，即使未来遇到很大的困难，也不希望轻易放弃？",
+  "如果十年后的我们回头看现在，你最希望我们已经一起完成了什么？",
+  "你希望无论我们在一起多久，都能够对彼此保留怎样的好奇心？",
+  "如果我们的关系不仅能够给彼此带来幸福，也能够给身边的人带来一些美好，你希望我们一起做些什么？",
+  "你希望通过这段关系，我们不仅成为彼此生命中重要的人，还能够分别成长为什么样的人？",
+  "如果有一天，我们回头看这段共同走过的生命旅程，你最希望我们能够骄傲地对彼此说：「我们曾经________。」你希望这句话如何结束？"
+];
+    const STORAGE_KEY = 'relationship.mailbox.used.v1';
+    let used = loadUsed();
+
+    function loadUsed() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+    }
+
+    function saveUsed() { localStorage.setItem(STORAGE_KEY, JSON.stringify(used)); }
+
+    function switchScreen(id) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.toggle('active', screen.id === id));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function drawQuestion() {
+      if (used.length >= QUESTIONS.length) used = [];
+      const available = QUESTIONS.map((_, index) => index).filter(index => !used.includes(index));
+      const index = available[Math.floor(Math.random() * available.length)];
+      used.push(index);
+      saveUsed();
+      const el = document.getElementById('questionText');
+      el.className = 'question';
+      el.textContent = QUESTIONS[index];
+      document.getElementById('mailboxStage').classList.add('has-question');
+      document.getElementById('drawButton').textContent = '再打开一封';
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = 'rise .42s var(--ease) both';
+    }
+
+    document.getElementById('commitButton').addEventListener('click', () => switchScreen('playScreen'));
+    document.getElementById('backNoticeButton').addEventListener('click', () => switchScreen('noticeScreen'));
+    document.getElementById('drawButton').addEventListener('click', drawQuestion);
+  </script>
+</body>
+</html>

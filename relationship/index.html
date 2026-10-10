@@ -21,6 +21,8 @@
       --c5: #9B7BB5;
       --c6: #C8972A;   /* 人生拍卖行 · 拍卖金 */
       --c7: #5F9FB2;   /* 你画我猜 · 湖蓝 */
+      --c8: #7C4D7A;   /* 心动信箱 · 暮紫 */
+      --c9: #4B8F71;   /* 亲子悄悄话 · 森绿 */
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -91,6 +93,8 @@
     a.game-card:nth-child(5) { animation: up .72s var(--ease) .46s both; }
     a.game-card:nth-child(6) { animation: up .72s var(--ease) .54s both; }
     a.game-card:nth-child(7) { animation: up .72s var(--ease) .62s both; }
+    a.game-card:nth-child(8) { animation: up .72s var(--ease) .70s both; }
+    a.game-card:nth-child(9) { animation: up .72s var(--ease) .78s both; }
     a.game-card:hover  { transform: translateY(-7px); box-shadow: 0 24px 56px rgba(0,0,0,.13); }
     a.game-card:active { transform: translateY(-3px); }
 
@@ -111,6 +115,8 @@
     .card-visual.v5 { background: var(--c5); }
     .card-visual.v6 { background: var(--c6); }
     .card-visual.v7 { background: var(--c7); }
+    .card-visual.v8 { background: linear-gradient(145deg, var(--c8), #B8626A); }
+    .card-visual.v9 { background: linear-gradient(145deg, var(--c9), #6BA7B8); }
 
     .card-visual::before {
       content: '';
@@ -207,6 +213,82 @@
       left: 3px;
       top: 6px;
       transform: rotate(-38deg);
+    }
+
+    /* ⑧ mailbox — 心动信箱 */
+    .visual-content.mail-preview {
+      height: 132px;
+      display: grid;
+      place-items: center;
+    }
+    .mail-envelope {
+      width: 174px;
+      height: 116px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #F7E7C8, #E9CCAA);
+      position: relative;
+      box-shadow: 0 16px 26px rgba(35, 18, 20, .18);
+    }
+    .mail-envelope::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: -32px;
+      width: 112px;
+      height: 82px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .94);
+      transform: translateX(-50%);
+      box-shadow: inset 0 -18px 0 rgba(124,77,122,.08);
+    }
+    .mail-envelope::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      background:
+        linear-gradient(32deg, transparent 49%, rgba(255,255,255,.34) 50%, transparent 51%),
+        linear-gradient(-32deg, transparent 49%, rgba(75,39,45,.14) 50%, transparent 51%);
+      clip-path: polygon(0 34%, 50% 78%, 100% 34%, 100% 100%, 0 100%);
+    }
+    .mail-mark {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 34px;
+      height: 34px;
+      border: 2px solid rgba(217,93,106,.72);
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    /* ⑨ parent — 亲子悄悄话 */
+    .visual-content.parent-preview {
+      height: 132px;
+      display: grid;
+      place-items: center;
+      gap: 12px;
+    }
+    .chat-bubble {
+      max-width: 188px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.22);
+      color: rgba(255,255,255,.92);
+      padding: 10px 15px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+      position: relative;
+    }
+    .chat-bubble.child {
+      justify-self: start;
+      background: rgba(255,255,255,.82);
+      color: #254436;
+    }
+    .chat-bubble.parent {
+      justify-self: end;
+      background: rgba(243,190,88,.84);
+      color: #254436;
     }
 
     /* ① quote — 心灵奇旅 */
@@ -740,6 +822,45 @@
           <h2>你画我猜</h2>
           <p>自由画布、你画我猜、画笔传情三种玩法。用画画让大家更自然地介绍自己、猜彼此、接住联想。</p>
           <span class="card-link">开始画画 →</span>
+        </div>
+      </a>
+
+      <!-- 08 心动信箱 -->
+      <a class="game-card" href="./mailbox/">
+        <div class="card-visual v8">
+          <div class="visual-content mail-preview">
+            <span class="mail-envelope">
+              <span class="mail-mark"></span>
+            </span>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">08</span>
+            <span class="card-tag">2人 · 深度关系</span>
+          </div>
+          <h2>心动信箱</h2>
+          <p>抽一封信，回答一个问题。适合想更认真认识彼此的暧昧、情侣与伴侣关系。</p>
+          <span class="card-link">打开信箱 →</span>
+        </div>
+      </a>
+
+      <!-- 09 亲子悄悄话 -->
+      <a class="game-card" href="./parent/">
+        <div class="card-visual v9">
+          <div class="visual-content parent-preview">
+            <span class="chat-bubble child">我可以慢慢说吗？</span>
+            <span class="chat-bubble parent">我会先听你说完</span>
+          </div>
+        </div>
+        <div class="card-text">
+          <div class="card-meta">
+            <span class="card-num">09</span>
+            <span class="card-tag">亲子 · 年龄分段</span>
+          </div>
+          <h2>亲子悄悄话</h2>
+          <p>先确认倾听原则，再按孩子年龄抽问题，让家长和孩子更安全地聊到真实想法。</p>
+          <span class="card-link">开始对话 →</span>
         </div>
       </a>
 
