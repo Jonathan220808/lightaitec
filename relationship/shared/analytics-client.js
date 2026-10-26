@@ -44,17 +44,23 @@
     }).catch(function () {});
   }
 
-  var path = window.location.pathname;
-  if (!shouldTrack(path)) return;
-
-  send({
-    visitorId: visitorId(),
-    path: path,
-    title: document.title || "",
-    screen: window.screen ? {
-      width: window.screen.width,
-      height: window.screen.height
-    } : null,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ""
-  });
+  var lastPath = "";
+  function trackPage() {
+    var path = window.location.pathname;
+    if (!shouldTrack(path)) return;
+    var params = new URLSearchParams(window.location.search);
+    var view = params.get("view");
+    var game = params.get("game");
+    // Room codes and player content are deliberately excluded from page-view records.
+    if (view && game) path += "?view=" + encodeURIComponent(view) + "&game=" + encodeURIComponent(game);
+    if (path === lastPath) return;
+    lastPath = path;
+    send({
+      visitorId: visitorId(), path: path, title: document.title || "",
+      screen: window.screen ? { width: window.screen.width, height: window.screen.height } : null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ""
+    });
+  }
+  trackPage();
+  window.addEventListener("relationship-route", trackPage);
 })();
