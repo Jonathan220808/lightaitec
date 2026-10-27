@@ -26,12 +26,13 @@ export class RoomClient {
       if(msg.type==='error'){toast(msg.message);if(!this.room){this.onConnection(msg.message);forgetRoom()}return}
       if(msg.type==='welcome'){this.playerId=msg.playerId;this.code=msg.room.code;this.create=false;localStorage.setItem(LAST,JSON.stringify({game,code:this.code}));const url=new URL(location.href);url.searchParams.set('view','room');url.searchParams.set('game',game);url.searchParams.set('room',this.code);history.replaceState({},'',url);dispatchEvent(new Event('relationship-route'))}
       if(msg.room){this.room=msg.room;this.onState(msg.room,this.playerId)}
-      if(msg.type==='left'){this.close();forgetRoom();route('entry',game)}
+      if(msg.type==='left')this.finishLeave()
     }
     socket.onerror=()=>{if(this.socket===socket)this.onConnection('连接失败，请检查网络或稍后重试')}
     socket.onclose=()=>{if(this.socket!==socket)return;this.socket=null;if(this.closed)return;this.onConnection('连接中断，正在重连');if(this.code)this.timer=setTimeout(()=>this.connect(this.game,this.code,this.name,false),1800)}
   }
   send(type,payload={}){if(this.socket?.readyState===1)this.socket.send(JSON.stringify({type,...payload}));else toast('正在连接房间')}
-  leave(){this.closed=true;clearTimeout(this.timer);if(this.socket?.readyState===1)this.send('leave_room');forgetRoom();setTimeout(()=>{this.socket?.close();route('entry',this.game)},120)}
+  leave(){if(this.leaving)return;this.leaving=true;this.closed=true;clearTimeout(this.timer);if(this.socket?.readyState===1)this.send('leave_room');forgetRoom();this.leaveTimer=setTimeout(()=>this.finishLeave(),300)}
+  finishLeave(){if(this.leaveFinished)return;this.leaveFinished=true;clearTimeout(this.leaveTimer);this.close();forgetRoom();route('entry',this.game)}
   close(){this.closed=true;clearTimeout(this.timer);this.socket?.close();this.socket=null}
 }
